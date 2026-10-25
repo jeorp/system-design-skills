@@ -1,9 +1,9 @@
 # Tip Index
 
-Source: `system-design-skill-developer` / `catalog.en.json`. Release: `v2-practice`. 212 Tips.
-Imported at (UTC): 2026-10-25T10:09:35+00:00.
+Source: `system-design-skill-developer` / `catalog.en.json`. Release: `v2-practice`. 277 Tips.
+Imported at (UTC): 2026-10-25T16:30:07+00:00.
 
-Source SHA-256: `95382ad3b8592a2f24d976f586f39374e4778786a943974815771d7869ed2c7a`.
+Source SHA-256: `4ba5b1171f9db4153eef881c70bd5e4924e6786920f321f759b67a8c5f6c2032`.
 
 Use this index to select Tips, then read their explanations, conditions, and trade-offs.
 Titles are not universal requirements. Importing does not revalidate claims or guarantee current sources or product versions.
@@ -30,6 +30,12 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `dns-ttl` | A DNS change does not reach everyone at once, so lower the TTL ahead of time |
 | `sql-null-logic` | SQL NULL means unknown, and comparisons can silently exclude rows |
 | `timestamps-business-dates` | Separate an event instant from a business calendar date |
+| `algorithm-growth-model` | Use complexity to understand how work grows with the input |
+| `binary-search-preconditions` | Binary search requires data sorted in the same order used for searching |
+| `hash-table-collisions` | Equal hash values do not establish equal keys |
+| `dynamic-array-amortized` | Amortized O(1) array append can still have one expensive operation |
+| `process-thread-memory` | Threads share process memory; ordinary variables do not automatically span processes |
+| `tcp-byte-stream-framing` | TCP delivers a byte stream, so one write need not equal one read |
 
 ## Performance & capacity
 
@@ -44,20 +50,62 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `connection-pool-math` | Estimate configured DB connection ceilings as instances × processes × pool limit |
 | `cross-az-transfer` | Traffic between AZs is billed, and replication multiplies it |
 
-## Reliability
+## Google Cloud / PCA
 
 | ID | Topic |
 | --- | --- |
-| `timeout-budget` | Shorter timeouts downstream, and pass the remaining budget along |
-| `retry-amplification` | Retries multiply across layers and amplify outages |
-| `load-shedding` | Under overload, reject some requests quickly instead of serving all slowly |
-| `cache-stampede` | An expiring hot key turns into a database stampede |
-| `availability-math` | Estimate required dependency availability with a product only under an independence model |
-| `blast-radius` | Shrink the blast radius by design, before the outage |
-| `metastable-failure` | Some outages do not end when the load drops (metastable failures) |
-| `idempotency-keys` | Retries of non-idempotent writes need deduplication such as idempotency keys |
-| `request-cancellation` | Returning a timeout does not stop the work behind it |
-| `unknown-write-outcomes` | A timed-out write may have an unknown outcome rather than a failure |
+| `gcp-pca-requirements` | Choose a Google Cloud architecture after aligning business and nonfunctional requirements |
+| `gcp-pca-compute` | Choose Cloud Run, GKE, or Compute Engine by required control and operating responsibility |
+| `gcp-pca-relational-database` | Choose Cloud SQL or Spanner by compatibility, write scale, and placement |
+| `gcp-pca-storage` | Choose Cloud Storage, Filestore, or block storage by access semantics |
+| `gcp-pca-ha-dr` | Separate regional Cloud SQL HA from regional disaster recovery |
+| `gcp-pca-hybrid-network` | Choose Cloud VPN or Interconnect by bandwidth, path, encryption, and redundancy |
+| `gcp-pca-resource-hierarchy` | Align project separation and Shared VPC with access and network ownership |
+| `gcp-pca-workload-identity` | Consider Workload Identity Federation before long-lived keys for external CI |
+| `gcp-pca-streaming-analytics` | Choose Pub/Sub-to-BigQuery ingestion by whether processing spans messages |
+| `gcp-pca-migration-cutover` | Continuous Database Migration Service migrations still need a write cutover plan |
+| `gcp-pca-cost-controls` | Separate rightsizing, usage controls, and discount commitments in Google Cloud cost design |
+| `gcp-pca-managed-ai` | Separate requirements met by managed AI APIs from those needing self-deployment |
+| `gcp-pca-private-google-access` | Private Google Access gives VMs without external IPs a path to Google APIs |
+| `gcp-pca-service-perimeter` | Combine VPC Service Controls with IAM to protect supported-service data boundaries |
+| `gcp-pca-cmek-lifecycle` | Separate CMEK rotation from re-encryption and retirement of old key versions |
+| `gcp-pca-audit-logs` | Administrative audit logs alone cannot establish who read your data |
+| `gcp-pca-load-balancing` | Choose Google Cloud load balancing by protocol, exposure, and deployment scope |
+| `gcp-pca-release-slo` | Use revision-level quality and SLOs to decide whether a Cloud Run rollout proceeds |
+
+## AWS / architecture
+
+| ID | Topic |
+| --- | --- |
+| `aws-architecture-requirements` | Choose AWS architectures from business constraints and operational responsibilities |
+| `aws-architecture-compute` | Choose Lambda, ECS with Fargate, EKS, or EC2 by execution model and control |
+| `aws-architecture-database` | Choose RDS, Aurora, or DynamoDB from access patterns and transactions |
+| `aws-architecture-storage` | Choose S3, EFS, or EBS by object, shared-file, or block access |
+| `aws-architecture-ha-dr` | Separate RDS Multi-AZ DB instances from read scaling and regional disaster recovery |
+| `aws-architecture-private-access` | Choose VPC endpoints by destination and gateway or interface access |
+| `aws-architecture-multi-account` | Use AWS accounts and SCPs to define operational boundaries and permission guardrails |
+| `aws-architecture-workload-identity` | Constrain both OIDC trust and IAM role permissions for external CI deployments |
+| `aws-architecture-messaging` | Choose SQS, SNS, or EventBridge by buffering, fanout, and routing roles |
+| `aws-architecture-migration-cutover` | AWS DMS replication still needs a write-stop and database cutover plan |
+| `aws-architecture-cost-controls` | Separate AWS rightsizing, Savings Plans, and budget actions |
+| `aws-architecture-managed-ai` | Choose Bedrock or SageMaker AI from model and inference-control requirements |
+
+## Azure / architecture
+
+| ID | Topic |
+| --- | --- |
+| `azure-architecture-requirements` | Compare Azure architectures through business requirements and remaining responsibilities |
+| `azure-architecture-compute` | Choose App Service, Functions, Container Apps, or AKS from execution requirements |
+| `azure-architecture-database` | Choose Azure SQL or Cosmos DB from SQL Server compatibility and operation scope |
+| `azure-architecture-storage` | Choose Blob, Azure Files, or Managed Disks by APIs, sharing protocols, and block access |
+| `azure-architecture-ha-dr` | Separate SQL Database zone redundancy from cross-region recovery |
+| `azure-architecture-private-access` | Verify Private Endpoint DNS, authorization, and public network settings |
+| `azure-architecture-governance` | Separate Azure RBAC permissions from Policy governance across management scopes |
+| `azure-architecture-workload-identity` | Separate credential management from data permissions with managed identities and OIDC |
+| `azure-architecture-messaging` | Choose Service Bus, Event Grid, or Event Hubs by work, notifications, or streams |
+| `azure-architecture-migration-cutover` | Plan write suspension and final cutover for online PostgreSQL migration |
+| `azure-architecture-cost-controls` | Separate Azure budget notifications, usage reduction, and savings plans |
+| `azure-architecture-managed-ai` | Choose Foundry model APIs or Azure Machine Learning by deployment and processing location |
 
 ## Database design & transactions
 
@@ -83,6 +131,38 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `backup-restore` | Replicas alone do not protect against accidental deletion; verify backups by restoring them |
 | `saga` | Chain work across services with compensating steps (a saga) |
 | `throttled-backfill` | Run big updates and deletes in small, throttled batches |
+
+## ETL & data platforms
+
+| ID | Topic |
+| --- | --- |
+| `etl-elt-data-boundaries` | Choose ETL or ELT by transformation location and raw-data boundaries |
+| `etl-incremental-cursor` | Incremental cursors must distinguish update time from commit order |
+| `etl-cdc-snapshot-handoff` | Start CDC with a connected snapshot and change-log position |
+| `etl-idempotent-publication` | Repeatable ETL fixes the input version and publication unit |
+| `etl-event-time-late-data` | Aggregate late data using event time and arrival time separately |
+| `etl-schema-contracts` | Schema changes need contracts for meaning as well as types |
+| `etl-grain-reconciliation` | Validate ETL grain and totals as well as row counts |
+| `etl-backfill-isolation` | Backfills need publication conflict control as well as capacity limits |
+| `etl-freshness-completeness` | Monitor ETL success, freshness, and completeness separately |
+| `etl-partition-pruning` | Partitions help when queries actually prune the scanned range |
+| `etl-business-data-interval` | Choose reprocessing intervals by business time, not execution day |
+| `etl-historical-dimensions` | Decide whether historical revenue uses past or current attributes |
+
+## Reliability
+
+| ID | Topic |
+| --- | --- |
+| `timeout-budget` | Shorter timeouts downstream, and pass the remaining budget along |
+| `retry-amplification` | Retries multiply across layers and amplify outages |
+| `load-shedding` | Under overload, reject some requests quickly instead of serving all slowly |
+| `cache-stampede` | An expiring hot key turns into a database stampede |
+| `availability-math` | Estimate required dependency availability with a product only under an independence model |
+| `blast-radius` | Shrink the blast radius by design, before the outage |
+| `metastable-failure` | Some outages do not end when the load drops (metastable failures) |
+| `idempotency-keys` | Retries of non-idempotent writes need deduplication such as idempotency keys |
+| `request-cancellation` | Returning a timeout does not stop the work behind it |
+| `unknown-write-outcomes` | A timed-out write may have an unknown outcome rather than a failure |
 
 ## Distributed systems & scale
 
@@ -113,6 +193,19 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `api-error-contract` | Return an HTTP status and a stable error type instead of branching on prose |
 | `patch-field-presence` | Distinguish omitted, null, zero, false, and empty strings in partial updates |
 | `request-work-limits` | Limit work per request as well as the number of requests |
+
+## CDN & edge delivery
+
+| ID | Topic |
+| --- | --- |
+| `cdn-edge-hit-miss` | A CDN serves from nearby locations; a cache miss still needs an upstream fetch |
+| `cdn-cache-key-variants` | Keep response-changing inputs in the CDN cache key; remove irrelevant ones |
+| `cdn-browser-shared-ttl` | Use max-age and s-maxage to separate browser and CDN freshness |
+| `cdn-etag-revalidation` | ETag and 304 reduce body retransfers; origin validation still happens |
+| `cdn-versioned-assets-purge` | A CDN purge does not clear browser copies; update static assets with new URLs |
+| `cdn-origin-shield` | Regional misses can overlap; an upstream cache and request collapsing protect the origin |
+| `cdn-signed-url-cache-expiry` | Signed URL expiry and CDN cache TTL are separate clocks |
+| `cdn-request-byte-hit-ratio` | A 99% CDN request hit rate can still leave most bytes fetched from the origin |
 
 ## Operations & cloud native
 
@@ -226,6 +319,20 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `security-postmortem-actions` | Turn incident lessons into owned improvements with verification criteria |
 | `tenant-cache-isolation` | Tenant-separated databases can still leak through shared cache keys |
 
+## PHP & Web Security
+
+| ID | Topic |
+| --- | --- |
+| `php-runtime-security-updates` | Patch the PHP processes serving requests; a WAF alone does not fix critical runtime flaws |
+| `php-composer-supply-chain` | Combine Composer locks and audits with control over code executed during installation |
+| `php-session-csrf-boundaries` | Session cookie protection and CSRF defenses protect different boundaries |
+| `php-contextual-xss-escaping` | Escape PHP output for the context where the browser will interpret it |
+| `php-upload-execution-boundary` | Design uploads through safe storage and delivery, not just a successful file move |
+| `php-untrusted-deserialization` | Do not unserialize untrusted input; class restrictions are not a safety guarantee |
+| `php-pdo-query-structure` | PDO placeholders bind values; choose column names and ORDER BY from permitted structures |
+| `php-strict-secret-comparison` | Distinguish strict PHP equality from secret comparison with hash_equals |
+| `php-fpm-production-boundaries` | Keep PHP-FPM private and separate public files from execution privileges |
+
 ## AI & LLM systems
 
 | ID | Topic |
@@ -282,23 +389,6 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `ai-architecture-observability` | Connect AI execution traces to business outcomes |
 | `ai-architecture-durable-agent-execution` | Saving conversation history does not prevent duplicate side effects |
 | `ai-architecture-inference-hosting` | Choose inference hosting by operating requirements, not unit price alone |
-
-## ETL & data platforms
-
-| ID | Topic |
-| --- | --- |
-| `etl-elt-data-boundaries` | Choose ETL or ELT by transformation location and raw-data boundaries |
-| `etl-incremental-cursor` | Incremental cursors must distinguish update time from commit order |
-| `etl-cdc-snapshot-handoff` | Start CDC with a connected snapshot and change-log position |
-| `etl-idempotent-publication` | Repeatable ETL fixes the input version and publication unit |
-| `etl-event-time-late-data` | Aggregate late data using event time and arrival time separately |
-| `etl-schema-contracts` | Schema changes need contracts for meaning as well as types |
-| `etl-grain-reconciliation` | Validate ETL grain and totals as well as row counts |
-| `etl-backfill-isolation` | Backfills need publication conflict control as well as capacity limits |
-| `etl-freshness-completeness` | Monitor ETL success, freshness, and completeness separately |
-| `etl-partition-pruning` | Partitions help when queries actually prune the scanned range |
-| `etl-business-data-interval` | Choose reprocessing intervals by business time, not execution day |
-| `etl-historical-dimensions` | Decide whether historical revenue uses past or current attributes |
 
 ## Interview follow-ups
 

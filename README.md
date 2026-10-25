@@ -20,8 +20,9 @@ Agent skills for improving in-house development, delivering customer solutions, 
 | [Data Pipeline Design](skills/data-pipeline-design/SKILL.md) | When designing ETL, ELT, streaming, or CDC data movement | Data contracts, capture and publication semantics, replay/backfill strategy, and reconciliation |
 | [Threat Modeling](skills/threat-modeling/SKILL.md) | When analyzing threats to a feature or system | Assets and trust boundaries, reachable threat scenarios, prioritized controls, and verification criteria |
 | [Observability Design](skills/observability-design/SKILL.md) | When designing how failures are detected and diagnosed | User-centered SLIs/SLOs, signal placement, actionable alerts, response evidence, and acceptance checks |
+| [Cloud Architecture Design](skills/cloud-architecture-design/SKILL.md) | When choosing or changing a workload's AWS, Google Cloud, or Azure services | Service composition, identity and network boundaries, recovery design, cost assumptions, and validation criteria |
 
-All skills use 212 system-design Tips to support decisions and communicate in your language. Planning, review, diagnosis, threat analysis, or retrospective analysis alone does not change your product or production settings. Failure testing can include focused local tests; production experiments require their own authorized scope.
+All skills use 277 system-design Tips to support decisions and communicate in your language. Planning, review, diagnosis, threat analysis, or retrospective analysis alone does not change your product or production settings. Failure testing can include focused local tests; production experiments require their own authorized scope.
 
 ## Choosing a skill
 
@@ -54,6 +55,7 @@ flowchart LR
     Domain -->|"ETL, streaming, or CDC"| Data["Data Pipeline Design"]
     Domain -->|"Assets, boundaries, and abuse paths"| Threat["Threat Modeling"]
     Domain -->|"Detection, diagnosis, and response"| Observe["Observability Design"]
+    Domain -->|"Cloud services, access, recovery, and cost"| Cloud["Cloud Architecture Design"]
 ```
 
 ### Broader workflows and their boundaries
@@ -80,6 +82,8 @@ For example, splitting a large existing service could combine the skills as foll
 ### Specialized design and its boundaries
 
 AI System Design makes AI-specific architectural decisions and defines task evaluations; it is not a general prompt-polishing workflow. Data Pipeline Design handles ongoing data movement, publication, replay, and reconciliation; Safe Migration Planning handles a bounded schema or data cutover. Threat Modeling develops asset and trust-boundary abuse scenarios; Architecture Change Review attributes system-level regressions to a concrete diff. Observability Design specifies indicators, instrumentation, alert actions, and diagnostic evidence; Incident Learning uses available evidence to analyze a past incident.
+
+Cloud Architecture Design chooses a workload's cloud placement and service composition, including provider-specific identity, network, recovery, and cost decisions. System Design Planning covers broader application and domain design. A fixed cloud choice stays fixed; comparing AWS, Google Cloud, and Azure or adopting multiple clouds is useful only when the workload calls for that decision. Cloud Architecture Design includes focused provider guides and the same standalone Tip bundle as the other skills.
 
 These skills can design a new path or improve an existing one within their domain. They do not require a broader assessment or another skill to be installed. Use only the relevant parts of their supporting guides.
 
@@ -108,11 +112,12 @@ $ai-system-design Design this support assistant's retrieval, permissions, tool a
 $data-pipeline-design Design this incremental analytics pipeline, including capture, deletes, late data, replay, concurrent backfills, and business-level reconciliation.
 $threat-modeling Model threats to this multi-tenant export feature, including entry points, trust boundaries, existing controls, and verification of the most important mitigations.
 $observability-design Design indicators, instrumentation, and actionable alerts for this asynchronous workflow, measuring business completion rather than only enqueue success.
+$cloud-architecture-design Design this workload on AWS, comparing compute and database options with identity and private network boundaries, zone and regional recovery, cost assumptions, and validation criteria.
 ```
 
 ## Included Tips
 
-Each skill bundles the same 212 English Tips with explanations, trade-offs, and source links, extracted from the `system-design-skill-developer` learning catalog. Every skill works independently of this repository's other skills and the original catalog.
+Each skill bundles the same 277 English Tips with explanations, trade-offs, and source links, extracted from the `system-design-skill-developer` learning catalog. Every skill works independently of this repository's other skills and the original catalog.
 
 The helper requires Python 3, with no additional dependencies. For example, from this repository's root:
 
