@@ -1,0 +1,4 @@
+interface:
+  display_name: "System Design Planning"
+  short_description: "Plan practical architecture with trade-offs and validation"
+  default_prompt: "Use $system-design-planning to design this feature, compare practical options, and recommend an architecture, implementation sequence, and validation criteria."

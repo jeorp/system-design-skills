@@ -1,0 +1,4 @@
+interface:
+  display_name: "Safe Migration Planning"
+  short_description: "Plan compatible migrations with gates and recovery limits"
+  default_prompt: "Use $safe-migration-planning to plan this schema or data migration with version coexistence, monitoring, abort conditions, and recovery limits."

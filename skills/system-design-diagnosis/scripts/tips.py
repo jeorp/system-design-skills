@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read selected Tips or rebuild a portable diagnostic snapshot; stdlib only."""
+"""Read selected Tips or rebuild a portable system-design snapshot; stdlib only."""
 
 import argparse
 from datetime import datetime, timezone
@@ -100,9 +100,9 @@ def refresh(source):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
-    show = commands.add_parser("show", help="Print complete diagnostic fields for selected IDs")
+    show = commands.add_parser("show", help="Print complete design guidance for selected IDs")
     show.add_argument("ids", nargs="+")
-    search = commands.add_parser("search", help="Search diagnostic text; print only matching IDs and titles")
+    search = commands.add_parser("search", help="Search design guidance; print only matching IDs and titles")
     search.add_argument("terms", nargs="+")
     refresh_command = commands.add_parser("refresh", help="Replace generated references from a local catalog")
     refresh_command.add_argument("--source", type=Path, required=True)

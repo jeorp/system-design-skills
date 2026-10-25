@@ -1,0 +1,4 @@
+interface:
+  display_name: "Failure Scenario Testing"
+  short_description: "Verify retries, races, timeouts, and recovery behavior"
+  default_prompt: "Use $failure-scenario-testing to identify failure windows in this feature and implement focused local tests where needed."

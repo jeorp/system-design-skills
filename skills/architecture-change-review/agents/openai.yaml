@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Change Review"
+  short_description: "Review architectural risks introduced by a concrete diff"
+  default_prompt: "Use $architecture-change-review to review this diff for consistency, compatibility, load, and authorization risks."

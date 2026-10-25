@@ -1,0 +1,4 @@
+interface:
+  display_name: "Incident Learning"
+  short_description: "Turn incident evidence into verified improvement actions"
+  default_prompt: "Use $incident-learning to analyze this incident timeline and evidence, explain causal factors, and propose improvements with verification criteria."
