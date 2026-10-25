@@ -1,0 +1,4 @@
+interface:
+  display_name: "FDE Solution Delivery"
+  short_description: "Plan customer workflow outcomes, pilots, and handover"
+  default_prompt: "Use $fde-solution-delivery to turn this customer workflow problem into an evidence-based solution and adoption plan with acceptance cases, pilot criteria, and operational handover."

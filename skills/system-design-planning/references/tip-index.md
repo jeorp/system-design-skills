@@ -1,9 +1,9 @@
 # Tip Index
 
-Source: `system-design-skill-developer` / `catalog.en.json`. Release: `v2-practice`. 134 Tips.
-Imported at (UTC): 2026-10-25T08:57:57+00:00.
+Source: `system-design-skill-developer` / `catalog.en.json`. Release: `v2-practice`. 212 Tips.
+Imported at (UTC): 2026-10-25T10:09:35+00:00.
 
-Source SHA-256: `51e26c9f4336d14bc9041b733a998d065349c0b2b1595159efddfc4bd6ff4ea2`.
+Source SHA-256: `95382ad3b8592a2f24d976f586f39374e4778786a943974815771d7869ed2c7a`.
 
 Use this index to select Tips, then read their explanations, conditions, and trade-offs.
 Titles are not universal requirements. Importing does not revalidate claims or guarantee current sources or product versions.
@@ -57,6 +57,7 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `metastable-failure` | Some outages do not end when the load drops (metastable failures) |
 | `idempotency-keys` | Retries of non-idempotent writes need deduplication such as idempotency keys |
 | `request-cancellation` | Returning a timeout does not stop the work behind it |
+| `unknown-write-outcomes` | A timed-out write may have an unknown outcome rather than a failure |
 
 ## Database design & transactions
 
@@ -95,6 +96,7 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `clocks` | Machine clocks drift; don't rely on wall time for order or duration |
 | `queue-backlog` | A queue does not remove overload; it defers it, and the debt comes due |
 | `exactly-once-boundary` | Effects outside an exactly-once guarantee need their own deduplication |
+| `dead-letter-recovery` | Moving a failed message aside does not complete the business operation |
 
 ## APIs & protocols
 
@@ -126,6 +128,7 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `slo-burn-rate` | Page on SLO burn rate and complement it with preventive capacity alerts |
 | `trace-propagation` | Carry one trace ID across services so logs connect |
 | `metric-cardinality` | Put user IDs in metric labels and the time series explode |
+| `autoscaling-downstream-limits` | Adding application instances can overload a shared database or API |
 
 ## Cloud-native development
 
@@ -154,6 +157,39 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `delivery-metrics` | Delivery speed and stability are not a trade-off; measure them together as a set |
 | `database-integration-tests` | Passing mocks do not prove SQL and transaction behavior |
 | `configuration-startup-validation` | Catch invalid configuration at startup before the first user does |
+| `rollback-data-compatibility` | Rolling back code does not undo data written by the new version |
+
+## DevOps & in-house development
+
+| ID | Topic |
+| --- | --- |
+| `devops-service-ownership` | Service ownership needs coverage, authority, and a backup |
+| `devops-ci-feedback-path` | Measure CI feedback from queue entry to actionable results |
+| `devops-deploy-serialization` | Serialize deployment writes and guard against stale arrivals |
+| `devops-incident-command` | During incidents, assign recovery work, coordination, and communication |
+| `devops-postmortem-actions` | Close postmortems with system changes and verification |
+| `devops-toil-budget` | Prioritize repetitive operations by hands-on time and automation upkeep |
+| `inhouse-team-boundaries` | Assess team autonomy by independent validation and delivery |
+| `inhouse-knowledge-transfer` | Verify knowledge transfer by having the receiving team deliver a change |
+| `inhouse-legacy-seams` | Start legacy replacement with a switchable boundary and a source of truth |
+| `inhouse-platform-golden-path` | Design the update path alongside internal project templates |
+| `inhouse-platform-product` | Measure internal platform value through user friction and waiting |
+| `inhouse-build-buy-exit` | Compare build and buy through maintenance and exit, beyond setup |
+| `inhouse-repository-delivery-map` | Trace a code path from its entry point to the revision running in production |
+| `inhouse-local-bootstrap` | Verify development setup by starting from a clean environment |
+| `inhouse-reproducible-fixtures` | Build test data from the conditions under test without copying personal data |
+| `inhouse-preview-isolation` | Isolate preview data and external effects alongside preview URLs |
+| `inhouse-dependency-lockfiles` | Align dependencies with a lockfile and validate upgrades as explicit changes |
+| `inhouse-module-boundary-tests` | Enforce module boundaries with dependency checks alongside diagrams |
+| `inhouse-legacy-characterization` | Capture current behavior before changing poorly understood legacy code |
+| `inhouse-migration-rehearsal` | Rehearse database migrations with volume, invalid data, and concurrent work |
+| `inhouse-terraform-state-locking` | Investigate active work before clearing a Terraform state lock |
+| `inhouse-ci-trust-boundaries` | Keep production mutation privileges away from jobs executing PR code |
+| `inhouse-development-secret-scope` | Scope development secrets separately from production |
+| `inhouse-observability-acceptance` | Include the ability to identify failing behavior and revisions in completion criteria |
+| `inhouse-review-learning-loop` | Use reviews to share rationale and verification alongside fixes |
+| `inhouse-library-compatibility` | Validate shared-library changes through consumer behavior, beyond version numbers |
+| `inhouse-debt-change-evidence` | Prioritize technical debt through observed change and incident costs |
 
 ## Authentication & authorization
 
@@ -167,6 +203,7 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `refresh-token-rotation` | Rotate refresh tokens on every use, and revoke the whole set when a used one comes back |
 | `object-authorization` | Hard-to-guess IDs are not a substitute for authorization |
 | `permission-consistency` | Right after you revoke access, a cached authorization check still says yes (the new enemy problem) |
+| `async-job-authorization` | A queued job may outlive the permission that allowed it |
 
 ## Security
 
@@ -187,6 +224,7 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `incident-scope-communication` | Communicate verified impact separately from uncertain scope |
 | `secure-incident-recovery` | Verify safe recovery by closing re-entry paths before restoring service |
 | `security-postmortem-actions` | Turn incident lessons into owned improvements with verification criteria |
+| `tenant-cache-isolation` | Tenant-separated databases can still leak through shared cache keys |
 
 ## AI & LLM systems
 
@@ -201,6 +239,66 @@ python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 | `prompt-injection` | Treat outside text an LLM reads as data, not instructions (prompt injection) |
 | `agent-step-reliability` | Estimate end-to-end step success with explicit independence or conditional probabilities |
 | `llm-fallback` | Decide how to wait and where to fall back before an LLM API rate-limits or overloads |
+
+## FDE & engineering in the AI era
+
+| ID | Topic |
+| --- | --- |
+| `fde-outcome-framing` | Translate “we want AI” into whose outcome should improve |
+| `fde-workflow-observation` | After hearing about a workflow, follow one real case end to end |
+| `fde-domain-data-meaning` | Align business language with data: “complete” can mean different things |
+| `fde-risk-first-experiments` | Use prototypes to test the assumptions that could sink the project |
+| `ai-simplest-baseline` | Compare AI with a rules-based or search-only baseline |
+| `ai-workflow-total-value` | A faster AI response may still leave the whole task slower |
+| `ai-task-context-contract` | Give AI the goal, constraints, and verification method together |
+| `ai-generated-change-verification` | Verify AI-generated changes with counterexamples derived from requirements |
+| `ai-debug-evidence-loop` | Treat AI’s proposed causes as hypotheses and narrow them with evidence |
+| `ai-autonomy-action-boundaries` | Scope AI autonomy by action impact and recovery options |
+| `fde-adoption-operational-handoff` | Plan adoption so local staff can keep using and recovering the service |
+| `fde-field-learning-reuse` | Return field learning to the product with the conditions for reuse |
+| `fde-stakeholder-decision-map` | Map who can decide on workflow, data, and operations beyond the customer contact |
+| `fde-access-dependency-plan` | Track access dependencies with owners, dates, and proof of usable connectivity |
+| `fde-data-readiness-profile` | Measure whether available data is timely and fit for the target workflow |
+| `fde-scope-change-negotiation` | Reprioritize requests with their impact on goals, dates, and quality |
+| `fde-business-acceptance-cases` | Agree business acceptance using concrete inputs and expected outcomes |
+| `fde-external-integration-contract` | Agree integration semantics for acceptance, completion, and redelivery |
+| `fde-shadow-to-pilot` | Shadow evaluation and a live pilot answer different questions |
+| `fde-business-result-reconciliation` | Reconcile business IDs and states as well as counts after migration or sync |
+| `fde-evidence-decision-updates` | Report evidence and required decisions alongside delivery progress |
+
+## AI architecture
+
+| ID | Topic |
+| --- | --- |
+| `ai-architecture-workflow-or-agent` | Keep control in code when the next step is already known |
+| `ai-architecture-rag-or-tuning` | Separate updating knowledge from changing model behavior |
+| `ai-architecture-retrieval-authorization` | Enforce RAG authorization before evidence crosses a trust boundary |
+| `ai-architecture-output-contracts` | Schema-valid JSON can still contain unacceptable business values |
+| `ai-architecture-model-routing` | Measure routing errors and duplicate work in model cascades |
+| `ai-architecture-context-budget` | Budget context for tool results and output as well as history |
+| `ai-architecture-end-to-end-latency` | A fast first token does not imply fast answer or action completion |
+| `ai-architecture-release-manifest` | Record AI releases as a combination of model, prompt, and retrieval assets |
+| `ai-architecture-quality-gates` | Use task-specific release gates for failures hidden by averages |
+| `ai-architecture-observability` | Connect AI execution traces to business outcomes |
+| `ai-architecture-durable-agent-execution` | Saving conversation history does not prevent duplicate side effects |
+| `ai-architecture-inference-hosting` | Choose inference hosting by operating requirements, not unit price alone |
+
+## ETL & data platforms
+
+| ID | Topic |
+| --- | --- |
+| `etl-elt-data-boundaries` | Choose ETL or ELT by transformation location and raw-data boundaries |
+| `etl-incremental-cursor` | Incremental cursors must distinguish update time from commit order |
+| `etl-cdc-snapshot-handoff` | Start CDC with a connected snapshot and change-log position |
+| `etl-idempotent-publication` | Repeatable ETL fixes the input version and publication unit |
+| `etl-event-time-late-data` | Aggregate late data using event time and arrival time separately |
+| `etl-schema-contracts` | Schema changes need contracts for meaning as well as types |
+| `etl-grain-reconciliation` | Validate ETL grain and totals as well as row counts |
+| `etl-backfill-isolation` | Backfills need publication conflict control as well as capacity limits |
+| `etl-freshness-completeness` | Monitor ETL success, freshness, and completeness separately |
+| `etl-partition-pruning` | Partitions help when queries actually prune the scanned range |
+| `etl-business-data-interval` | Choose reprocessing intervals by business time, not execution day |
+| `etl-historical-dimensions` | Decide whether historical revenue uses past or current attributes |
 
 ## Interview follow-ups
 

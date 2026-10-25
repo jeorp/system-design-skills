@@ -3,9 +3,9 @@
     "source_project": "system-design-skill-developer",
     "source_file": "catalog.en.json",
     "release_id": "v2-practice",
-    "source_sha256": "51e26c9f4336d14bc9041b733a998d065349c0b2b1595159efddfc4bd6ff4ea2",
-    "imported_at_utc": "2026-10-25T08:57:57+00:00",
-    "tip_count": 134,
+    "source_sha256": "95382ad3b8592a2f24d976f586f39374e4778786a943974815771d7869ed2c7a",
+    "imported_at_utc": "2026-10-25T10:09:35+00:00",
+    "tip_count": 212,
     "note": "Extracted from learning material. The import date is not a technical revalidation date."
   },
   "tips": [
@@ -930,6 +930,40 @@
       ]
     },
     {
+      "id": "unknown-write-outcomes",
+      "category": "Reliability",
+      "title": "A timed-out write may have an unknown outcome rather than a failure",
+      "keyPoint": "An external side effect may finish without a response arriving. Represent unknown outcomes explicitly and use the same business operation identity for lookup, safe retries, and reconciliation.",
+      "body": "If a connection breaks immediately after an external payment succeeds, the caller cannot determine success or failure from that observation alone. Recording failure locally and creating another payment can double-charge. An idempotency key suppresses duplicates within the provider’s API and retention contract; it does not guarantee an immediate final outcome. Retain the unresolved operation, look up the provider operation ID or mapped business ID, and resolve it through verified notifications or periodic reconciliation. Without a provider guarantee for safe retries, do not automatically repeat the side effect.",
+      "inDesign": "Ask: what if the provider succeeds but we stop before storing the result? Persist the operation ID, submitted parameters, and attempt history, and expose a pending-confirmation state. Retry the same operation with the same key within its guarantee window; reconcile after that window. Handle duplicate and out-of-order notifications. Drop only the response after a side effect, then check for duplicate execution and abandoned unknown outcomes.",
+      "tradeOffs": [
+        {
+          "option": "Return pending confirmation and resolve through notifications or lookups",
+          "gain": "Keep responses short while exposing uncertainty honestly",
+          "cost": "Provide user-visible states, authenticate notifications, and handle duplication and ordering"
+        },
+        {
+          "option": "Add periodic reconciliation and manual review for unresolved operations",
+          "gain": "Catch missing notifications and operations left unresolved",
+          "cost": "Require lookup capacity and operational ownership, with delayed final confirmation"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Stripe — Advanced error handling",
+          "url": "https://docs.stripe.com/error-low-level"
+        },
+        {
+          "title": "Stripe — Idempotent requests",
+          "url": "https://docs.stripe.com/api/idempotent_requests"
+        },
+        {
+          "title": "AWS Builders’ Library — Timeouts, retries, and backoff with jitter",
+          "url": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/"
+        }
+      ]
+    },
+    {
       "id": "composite-index-order",
       "category": "Database design & transactions",
       "title": "In a composite index, put equality columns first and range columns last",
@@ -1688,6 +1722,36 @@
       ]
     },
     {
+      "id": "dead-letter-recovery",
+      "category": "Distributed systems & scale",
+      "title": "Moving a failed message aside does not complete the business operation",
+      "keyPoint": "A dead-letter queue (DLQ) isolates failed messages. Assign ownership, monitoring, retention deadlines, safe replay, and business-result reconciliation to recover unfinished work.",
+      "body": "A dead-letter queue reduces disruption from repeatedly failing messages, but shipping, notification, or other work remains unfinished. Redriving everything without fixing the cause repeats the failure. Replaying a partly successful operation can duplicate side effects. Preserve the original business operation ID and inspect duplicate protection and current business state before replay. Expired requests and order-sensitive operations cannot always be processed like fresh messages.",
+      "inDesign": "Ask: can the normal queue be empty while orders remain unshipped? Detect DLQ arrivals, assign an investigator, and decide what to do before messages expire. After fixing the cause, redrive a small sample and increase the rate without overwhelming normal work. Inject failure after the side effect and verify that replay avoids duplicates and matches the business completion records.",
+      "tradeOffs": [
+        {
+          "option": "Redrive at a limited rate after repairing and validating the cause",
+          "gain": "Recover unfinished work without overwhelming normal traffic",
+          "cost": "Implement duplicate, ordering, expiry, and stop-condition handling"
+        },
+        {
+          "option": "Individually reconcile uncertain side effects and expired requests",
+          "gain": "Reduce duplicate or inappropriate actions from automatic replay",
+          "cost": "Require operator work and audit records, slowing recovery"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Amazon SQS — Using dead-letter queues",
+          "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html"
+        },
+        {
+          "title": "Amazon SQS — Configuring dead-letter queue redrive",
+          "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-configure-dead-letter-queue-redrive.html"
+        }
+      ]
+    },
+    {
       "id": "http-method-semantics",
       "category": "APIs & protocols",
       "title": "\"Safe\" and \"idempotent\" HTTP methods are what retries and automated clients rely on (RFC 9110)",
@@ -2354,6 +2418,40 @@
       ]
     },
     {
+      "id": "autoscaling-downstream-limits",
+      "category": "Operations & cloud native",
+      "title": "Adding application instances can overload a shared database or API",
+      "keyPoint": "Autoscaling increases application capacity without necessarily increasing shared dependency capacity. Budget total concurrency, request rate, and instance counts from downstream limits.",
+      "body": "If each instance can send 20 requests per second to an external API, ten instances can send 200 and forty can send 800. A shared API key limited to 300 requests per second becomes easier to overload as instances multiply. Per-instance rate limits and connection pools are not fleet-wide limits. Budget shared database, external API, and connection-path capacity across normal traffic, retries, batches, and overlapping releases. Even below a rate limit, slower responses increase in-flight work, so concurrency and waiting time need limits too.",
+      "inDesign": "Ask: if instance count quadruples, which downstream request rates can quadruple? Use shared rate control or conservative per-instance budgets and instance limits. Bound waiting time or reject work that cannot fit. Slow the dependency during load tests and verify that scaling does not exceed downstream capacity or let retries consume the entire budget.",
+      "tradeOffs": [
+        {
+          "option": "Manage a shared fleet-wide sending budget",
+          "gain": "Control aggregate downstream rate as instance counts change",
+          "cost": "Require a reliable control mechanism, window and burst rules, and budget allocation"
+        },
+        {
+          "option": "Conservatively cap instance counts and per-instance budgets",
+          "gain": "Bound expected load without adding distributed budget coordination",
+          "cost": "Leave capacity unused and verify assumptions including overlapping releases or temporary instance-count overshoot"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google Cloud Run — Autoscaling impact on backing services",
+          "url": "https://docs.cloud.google.com/run/docs/about-instance-autoscaling"
+        },
+        {
+          "title": "Google SRE — Handling Overload",
+          "url": "https://sre.google/sre-book/handling-overload/"
+        },
+        {
+          "title": "Google Cloud SQL — Manage database connections",
+          "url": "https://docs.cloud.google.com/sql/docs/postgres/manage-connections"
+        }
+      ]
+    },
+    {
       "id": "build-once-promote",
       "category": "Cloud-native development",
       "title": "Build the image once and promote that same image to production",
@@ -2933,6 +3031,738 @@
       ]
     },
     {
+      "id": "rollback-data-compatibility",
+      "category": "Development & release",
+      "title": "Rolling back code does not undo data written by the new version",
+      "keyPoint": "Verify that the rollback target can handle data and messages left by the new version. Separate reader preparation from activating new writes, and name the versions you can return to.",
+      "body": "Restoring an older application image leaves database and queue contents in place. If only the new version understands a format, enum value, or event, older readers can fail or misinterpret it. Check compatibility across readers and writers: deploy support for reading the new format everywhere before enabling writes. The prepared version may be a safe rollback target while earlier versions are not. Restoring an old backup also discards later valid updates, so it is not equivalent to a normal code rollback.",
+      "inDesign": "Ask: after the new version writes real data, how far back can we roll? Include batch jobs, consumers, and historical event replay as readers. Confirm their readiness before activating the new format, and record rollback targets and conditions that invalidate them. Test reading and updating new-version data with the rollback target, checking for information loss as well as read errors.",
+      "tradeOffs": [
+        {
+          "option": "Separate reader preparation from activating new writes",
+          "gain": "Verify compatibility and rollback targets at each stage",
+          "cost": "Require multiple releases, fleet-wide readiness checks, and support for both formats during migration"
+        },
+        {
+          "option": "For irreversible changes, restrict writes and recover with a forward fix or data conversion",
+          "gain": "Provide a recovery path when compatibility cannot be maintained",
+          "cost": "May require downtime or limited functionality and rehearsed conversion, validation, and resumption procedures"
+        }
+      ],
+      "sources": [
+        {
+          "title": "AWS Builders’ Library — Ensuring rollback safety during deployments",
+          "url": "https://aws.amazon.com/builders-library/ensuring-rollback-safety-during-deployments/"
+        },
+        {
+          "title": "Google SRE Workbook — Canarying Releases",
+          "url": "https://sre.google/workbook/canarying-releases/"
+        }
+      ]
+    },
+    {
+      "id": "devops-service-ownership",
+      "category": "DevOps & in-house development",
+      "title": "Service ownership needs coverage, authority, and a backup",
+      "keyPoint": "Development and operations share service quality. Define who detects, decides, and restores service, and when; naming one person does not cover absence or missing permissions.",
+      "body": "DevOps connects changes to operational feedback through shared responsibility, beyond installing CI/CD tools. A service owner makes quality and improvement decisions; on-call responders handle initial response during agreed coverage. These may be different people. Record notification routes, coverage, a backup responder, authorized actions, and escalation. Around-the-clock coverage requires a sustainable rotation rather than continuously paging everyone.",
+      "inDesign": "Link each service to its accountable team, dependencies, dashboards, and recovery instructions. Exercise notifications including an unavailable primary, and verify that responders can follow procedures with the necessary least privilege.",
+      "tradeOffs": [
+        {
+          "option": "Teams own response and improvement",
+          "gain": "Implementation knowledge informs recovery and prevention",
+          "cost": "Requires training, workload allocation, and suitable permissions"
+        },
+        {
+          "option": "Share duties with a central operations team",
+          "gain": "Shares specialist knowledge and responder coverage",
+          "cost": "Requires agreed recovery authority and a route for development improvements"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google SRE — Being On-Call",
+          "url": "https://sre.google/sre-book/being-on-call/"
+        }
+      ]
+    },
+    {
+      "id": "devops-ci-feedback-path",
+      "category": "DevOps & in-house development",
+      "title": "Measure CI feedback from queue entry to actionable results",
+      "keyPoint": "Return fast checks early and require deeper checks at the appropriate gate. Faster individual tests do not remove runner queues or serial dependencies.",
+      "body": "CI feedback time includes runner queues, setup, checks, and notification. Trace the critical path and parallelize independent checks. Cache keys should reflect dependency and tool versions, and verification must remain correct on a cache miss. Separate quick type and unit checks from deeper database and end-to-end checks while retaining required validation before release.",
+      "inDesign": "Measure time to the first useful result separately from time to all required release checks. Isolate test data or environments if parallel jobs contend for a shared database.",
+      "tradeOffs": [
+        {
+          "option": "Parallelize independent checks",
+          "gain": "Can reduce elapsed time to complete checks",
+          "cost": "Requires resources and test-data isolation"
+        },
+        {
+          "option": "Stage quick checks and deeper release validation",
+          "gain": "Finds early errors sooner",
+          "cost": "Requires mandatory gates so late failures are not ignored"
+        }
+      ],
+      "sources": [
+        {
+          "title": "DORA — Continuous integration",
+          "url": "https://dora.dev/capabilities/continuous-integration/"
+        }
+      ]
+    },
+    {
+      "id": "devops-deploy-serialization",
+      "category": "DevOps & in-house development",
+      "title": "Serialize deployment writes and guard against stale arrivals",
+      "keyPoint": "Coordinate writers to each service and environment and recheck the intended revision before mutation. Canceling CI does not guarantee cancellation of a submitted deployment request.",
+      "body": "Builds can run in parallel, but competing environment mutations can finish out of order and restore an older revision. Scope mutual exclusion to the service and environment being changed. GitHub Actions concurrency groups coordinate runs within a repository but do not guarantee dispatch order. At the final mutation boundary, coordinate external API and manual paths too, compare the desired revision, and use a conditional update checking the generation number where needed to reject stale requests.",
+      "inDesign": "Record artifact digest, request generation, and applied revision. An intentional rollback selects an older artifact in a new generation. Exercise an old operation continuing after its lock expires.",
+      "tradeOffs": [
+        {
+          "option": "Serialize runs for the same target in CI",
+          "gain": "Reduces routine deployment races",
+          "cost": "Other repositories, manual paths, and delayed external work need coordination"
+        },
+        {
+          "option": "Validate generation and desired revision at deployment",
+          "gain": "Can reject stale mutations that arrive late",
+          "cost": "Requires atomic validation and a shared generation scheme"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GitHub Actions — Control workflow concurrency",
+          "url": "https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency"
+        }
+      ]
+    },
+    {
+      "id": "devops-incident-command",
+      "category": "DevOps & in-house development",
+      "title": "During incidents, assign recovery work, coordination, and communication",
+      "keyPoint": "Share who is changing what to avoid conflicting recovery actions. Organize diagnosis alongside mitigation of user impact.",
+      "body": "Uncoordinated configuration changes can obscure what helped and cause further failures. An incident commander coordinates priorities and roles; operations responders apply coordinated changes; communicators report impact and the next update time. Small teams may combine roles while keeping ownership explicit. Maintain an incident record of timestamps, observations, actions, and results, and confirm acceptance when handing over.",
+      "inDesign": "Agree severity, mobilization rules, contacts, and a shared record in advance. Evaluate mitigation such as stopping a rollout or reverting before the root cause is certain, then verify recovery from the user perspective.",
+      "tradeOffs": [
+        {
+          "option": "Combine roles in a small team",
+          "gain": "Allows an immediate response",
+          "cost": "Requires handing off communication or recording as workload grows"
+        },
+        {
+          "option": "Assign operations and communication separately",
+          "gain": "Maintains communication while recovery work proceeds",
+          "cost": "Requires shared state and explicit role handovers"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google SRE — Managing Incidents",
+          "url": "https://sre.google/sre-book/managing-incidents/"
+        }
+      ]
+    },
+    {
+      "id": "devops-postmortem-actions",
+      "category": "DevOps & in-house development",
+      "title": "Close postmortems with system changes and verification",
+      "keyPoint": "Encourage facts without blame and investigate the information and system available at the time. Turn improvements into work with owners, deadlines, and verifiable completion criteria.",
+      "body": "A postmortem records impact, timeline, conditions delaying detection or mitigation, and safeguards that worked. Attributing an incident only to insufficient care leaves the same failure path open to others. Tie action items to the observed path, such as validation, staged rollout, or stopping on anomalies. Prioritize by benefit and cost and verify completion through tests or observation. Publishing the record is different from proving the fix works.",
+      "inDesign": "Agree postmortem triggers in advance. Put actions into the development plan and review implementation and effectiveness later. Keep secrets and personal information out of shared records.",
+      "tradeOffs": [
+        {
+          "option": "Add validation for the observed failure path",
+          "gain": "Stops similar invalid inputs earlier",
+          "cost": "May require maintaining validation and migrating existing settings"
+        },
+        {
+          "option": "Improve detection and mitigation too",
+          "gain": "Can limit impact from unanticipated causes",
+          "cost": "Requires tuning alerts and stopping conditions"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google SRE — Postmortem Culture",
+          "url": "https://sre.google/sre-book/postmortem-culture/"
+        }
+      ]
+    },
+    {
+      "id": "devops-toil-budget",
+      "category": "DevOps & in-house development",
+      "title": "Prioritize repetitive operations by hands-on time and automation upkeep",
+      "keyPoint": "Measure repetitive manual work and compare removal, self-service, and automation. Include failure recovery and maintenance, beyond writing a script.",
+      "body": "Toil is operational work that is repetitive, automatable, leaves no lasting improvement, and tends to grow with service size. Not every meeting or investigation is toil. Estimate frequency times hands-on time, alongside interruption and failure impact. Preserve approval, permissions, duplicate-execution safeguards, and result reconciliation in automation. Machine runtime is different from human time if no one needs to wait.",
+      "inDesign": "Check whether frequent reprocessing or account setup can be eliminated entirely. Assign ownership and a failure-support route, then measure changes in hands-on time, failures, and support demand.",
+      "tradeOffs": [
+        {
+          "option": "Remove the need for the task",
+          "gain": "Can reduce both execution and upkeep",
+          "cost": "Requires business or upstream design changes"
+        },
+        {
+          "option": "Provide safe automation or self-service",
+          "gain": "Reduces repetitive hands-on work",
+          "cost": "Permissions, recovery, and maintenance remain ongoing costs"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google SRE — Eliminating Toil",
+          "url": "https://sre.google/sre-book/eliminating-toil/"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-team-boundaries",
+      "category": "DevOps & in-house development",
+      "title": "Assess team autonomy by independent validation and delivery",
+      "keyPoint": "Splitting ownership only by frontend, API, and database can turn small business changes into handoffs. Align business capabilities with data ownership to reduce coordination.",
+      "body": "Using only employees does not remove dependencies if every change waits for another team to implement or release. Consider team boundaries around business capabilities delivered to users. Independent deployment also needs compatible APIs, data-write ownership, and suitable test environments. Separate services still require coordination when multiple teams freely change the same tables in a shared database. In a small organization, a modular monolith may preserve boundaries with less operational overhead.",
+      "inDesign": "Trace recent changes and inspect waits for other teams and reasons for synchronized releases. Improve API and data boundaries incrementally alongside organizational changes. The goal is not to eliminate all communication.",
+      "tradeOffs": [
+        {
+          "option": "Organize ownership by business capability",
+          "gain": "Reduces handoffs for small business changes",
+          "cost": "Requires multiple skills and clear data boundaries"
+        },
+        {
+          "option": "Use shared specialist teams",
+          "gain": "Shares scarce expertise across teams",
+          "cost": "Needs a support model that avoids ticket queues for routine changes"
+        }
+      ],
+      "sources": [
+        {
+          "title": "DORA — Loosely coupled teams",
+          "url": "https://dora.dev/capabilities/loosely-coupled-teams/"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-knowledge-transfer",
+      "category": "DevOps & in-house development",
+      "title": "Verify knowledge transfer by having the receiving team deliver a change",
+      "keyPoint": "Beyond receiving code and documentation, have the internal team build, validate, deploy, and recover. Retain the ability to make decisions and improve with external partners.",
+      "body": "In-house development does not mean employees must implement everything. Internal staff need the capability to decide priorities and acceptance and keep changing the service. Knowledge transfer should include pairing and work led by the receiving team, beyond a final presentation. Verify administration and renewal procedures for repositories, cloud accounts, certificates, and delivery systems. Remove build dependencies that exist only on an individual laptop or supplier environment, then verify transfer and remove unneeded access at the end of the engagement.",
+      "inDesign": "Allocate receiving staff and learning time, then have them lead a representative small change into a test environment. Exercise recovery and fix gaps in procedures and permissions.",
+      "tradeOffs": [
+        {
+          "option": "Transfer through ongoing pairing",
+          "gain": "Connects context to practical work",
+          "cost": "Requires time from both parties and a transfer plan"
+        },
+        {
+          "option": "Require exercises led by the receiving team",
+          "gain": "Reveals gaps in procedures, permissions, and implicit dependencies",
+          "cost": "Requires a safe environment and an available support period"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GOV.UK — Working with contractors or third parties",
+          "url": "https://www.gov.uk/service-manual/the-team/working-contractors-third-parties"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-legacy-seams",
+      "category": "DevOps & in-house development",
+      "title": "Start legacy replacement with a switchable boundary and a source of truth",
+      "keyPoint": "For incremental replacement, define routing, write ownership, comparison, and rollback conditions first. Switching the interface alone does not complete data migration.",
+      "body": "The strangler fig pattern routes traffic at a boundary between legacy and replacement systems and replaces capabilities incrementally. Define switching units by capability or user scope, with explicit sources of truth and write ownership. Uncoordinated dual writes can succeed on only one side; design synchronization, lag handling, reconciliation, and failure behavior. Routing back alone cannot recover if the old implementation cannot read newly written data. Check the routing boundary for availability and capacity too.",
+      "inDesign": "Exercise comparison, switching, and recovery on a small scope. Define completion and retirement criteria for each step so compatibility layers do not remain indefinitely. Compare with a complete replacement for small systems.",
+      "tradeOffs": [
+        {
+          "option": "Replace capabilities incrementally",
+          "gain": "Limits scope while enabling learning during migration",
+          "cost": "Requires synchronization, compatibility layers, and monitoring during coexistence"
+        },
+        {
+          "option": "Switch a small system as a whole",
+          "gain": "Can shorten coexistence",
+          "cost": "Requires validating complete data migration and rollback together"
+        }
+      ],
+      "sources": [
+        {
+          "title": "AWS Prescriptive Guidance — Strangler fig pattern",
+          "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/strangler-fig.html"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-platform-golden-path",
+      "category": "DevOps & in-house development",
+      "title": "Design the update path alongside internal project templates",
+      "keyPoint": "Provide a safe default path for common workloads, with a way to update generated projects and clear ownership for exceptions.",
+      "body": "A golden path connects development, validation, deployment, and observability for common workloads. Shared CI and permission defaults reduce repeated setup work. A copied template does not automatically receive later fixes, so plan component versioning, installed-version visibility, update notifications, and migration instructions. Separate mandatory safeguards from recommended implementations and provide an exception path with ownership and validation for workloads outside the standard.",
+      "inDesign": "Choose one frequent workload and pilot it with a few teams. Test both initial delivery and an upgrade to the next version performed by users, then fix friction.",
+      "tradeOffs": [
+        {
+          "option": "Reference shared workflows and components",
+          "gain": "Makes shared fixes easier to manage",
+          "cost": "Requires compatibility management and validation of consumer upgrades"
+        },
+        {
+          "option": "Let teams maintain generated configurations",
+          "gain": "Allows workload-specific changes",
+          "cost": "Requires distributing fixes and tracking adoption"
+        }
+      ],
+      "sources": [
+        {
+          "title": "CNCF — Platforms White Paper",
+          "url": "https://tag-app-delivery.cncf.io/whitepapers/platforms/"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-platform-product",
+      "category": "DevOps & in-house development",
+      "title": "Measure internal platform value through user friction and waiting",
+      "keyPoint": "Treat an internal platform as a product and iterate with users. Assess completion time, failures, support demand, and continued use alongside adoption.",
+      "body": "An internal platform serves development teams. More portal features do not remove waiting if fulfillment still requires manual work. Use user research to find frequent tasks and friction, then pilot a minimal capability together. Adoption rate means different things when use is mandatory versus chosen. Track satisfaction, completion time, and failures for comparable tasks, and check whether support requests merely moved to another channel.",
+      "inDesign": "Choose tasks with clear start and completion, such as preparing a service or provisioning a database. Observe users and measure how much they can complete without a manual request to the platform team.",
+      "tradeOffs": [
+        {
+          "option": "Iterate with a few partner teams",
+          "gain": "Finds concrete friction early",
+          "cost": "Needs later validation for other workloads"
+        },
+        {
+          "option": "Apply common safeguards across teams",
+          "gain": "Makes baseline safeguards more consistent",
+          "cost": "Requires exception support and visibility into user burden"
+        }
+      ],
+      "sources": [
+        {
+          "title": "CNCF — Platforms White Paper",
+          "url": "https://tag-app-delivery.cncf.io/whitepapers/platforms/"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-build-buy-exit",
+      "category": "DevOps & in-house development",
+      "title": "Compare build and buy through maintenance and exit, beyond setup",
+      "keyPoint": "Separate capabilities central to business differentiation from commodity maintenance. Buying retains integration and operational duties; building retains dependencies and upkeep.",
+      "body": "Compare business fit, change speed, security, staffing, integration, and migration on equivalent scope. Total cost of ownership includes upgrades, incident response, training, and migration alongside setup and usage fees. Evaluate provider dependence against value and an exit plan rather than pursuing zero lock-in. Data export alone may not preserve semantics, history, or permissions. Define triggers for reevaluation as pricing or requirements change.",
+      "inDesign": "Try equivalent business cases in each option and compare required capabilities and operational responsibilities. Exercise exporting and reimporting important data on a small scale and record assumptions and unknowns.",
+      "tradeOffs": [
+        {
+          "option": "Build a differentiating capability",
+          "gain": "Gives control over business-specific changes",
+          "cost": "Retains ongoing maintenance, operations, and staffing duties"
+        },
+        {
+          "option": "Buy or use a managed commodity capability",
+          "gain": "Delegates common implementation and some operations",
+          "cost": "Retains integration, usage management, pricing, and exit planning"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GOV.UK — Managing technical lock-in in the cloud",
+          "url": "https://www.gov.uk/guidance/managing-technical-lock-in-in-the-cloud"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-repository-delivery-map",
+      "category": "DevOps & in-house development",
+      "title": "Trace a code path from its entry point to the revision running in production",
+      "keyPoint": "Choose a representative operation and verify its code, data, build, and deployment path with evidence. Documentation alone does not establish the currently running path.",
+      "body": "When supporting an existing team, start by tracing a representative request instead of reading every file. Connect routing, authorization, business logic, writes, and asynchronous work through code and configuration. Identify which commit produced each artifact and where it was deployed, then compare deployment records with the running revision. Distinguish confirmed from unconfirmed paths in the map and omit credential values.",
+      "inDesign": "Ask: which CI run built the latest change, and where did it go? Inspect run records, artifact identifiers, and runtime revisions. Follow a small test-environment change through to telemetry to find undocumented manual steps.",
+      "tradeOffs": [
+        {
+          "option": "Trace a representative operation deeply",
+          "gain": "Builds understanding grounded in real changes and operations",
+          "cost": "Requires follow-up for other paths and exceptions"
+        },
+        {
+          "option": "Inventory the system first",
+          "gain": "Helps identify missing components and dependencies",
+          "cost": "An inventory alone does not establish actual execution paths"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google SRE — Release Engineering",
+          "url": "https://sre.google/sre-book/release-engineering/"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-local-bootstrap",
+      "category": "DevOps & in-house development",
+      "title": "Verify development setup by starting from a clean environment",
+      "keyPoint": "Define tool versions, seed data, external connections, shutdown, and reset. Test in a fresh workspace so prior caches and manual setup do not hide missing steps.",
+      "body": "Onboarding instructions should include runtime and database versions, sample configuration, migrations, initial data, and a verification step. Dev Container or Compose can codify shared setup, but host OS, CPU architecture, ports, and external permissions remain relevant. Separate development settings from production secrets. Scope reset procedures to development resources and verify targets before deleting data.",
+      "inDesign": "Ask whether a recent joiner can run the first test without verbal instructions. Preserve existing environments and test with a new directory and development data volume, then fix gaps in the instructions.",
+      "tradeOffs": [
+        {
+          "option": "Share a development container",
+          "gain": "Helps align tool and service setup",
+          "cost": "Requires managing host differences, resources, and image updates"
+        },
+        {
+          "option": "Install pinned tools on the host",
+          "gain": "Integrates directly with host tools",
+          "cost": "Requires OS-specific instructions and version-drift management"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Dev Containers — Images, Dockerfiles, and Docker Compose",
+          "url": "https://containers.dev/guide/dockerfile"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-reproducible-fixtures",
+      "category": "DevOps & in-house development",
+      "title": "Build test data from the conditions under test without copying personal data",
+      "keyPoint": "Synthetic data still needs appropriate volume, skew, relationships, and edge cases. Pin generator version, random seed, and reference time for reproducibility.",
+      "body": "A fixture establishes test preconditions. Include relationships, nulls, distinct orders with equal amounts, month boundaries, and long strings rather than just random names. A fixed random seed is insufficient when generator versions or reference times for relative dates change. Removing names from production copies can leave identifying free text or IDs. Prefer synthetic properties; production-derived data needs separately designed access, transformation, and retention.",
+      "inDesign": "Ask which minimal dataset reproduces the defect and which dataset tests performance. Separate small regression fixtures from larger load datasets, record generation conditions, and test regeneration.",
+      "tradeOffs": [
+        {
+          "option": "Maintain small scenario-specific datasets",
+          "gain": "Makes causes and expected results easier to understand",
+          "cost": "Volume and skew performance need separate checks"
+        },
+        {
+          "option": "Generate larger parameterized datasets",
+          "gain": "Enables volume and skew experiments",
+          "cost": "Requires managing generation cost, storage, and reproducibility"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Faker — Usage and reproducible results",
+          "url": "https://fakerjs.dev/guide/usage"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-preview-isolation",
+      "category": "DevOps & in-house development",
+      "title": "Isolate preview data and external effects alongside preview URLs",
+      "keyPoint": "Separate databases, queues, storage, permissions, and outbound actions by test scope. Names or Kubernetes namespaces alone do not prevent shared-data races or real notifications.",
+      "body": "A preview environment per PR can still share database or queue state. Namespaces help organize resources and scope permissions but do not themselves block traffic. Configure network enforcement supported by the implementation and separate external database credentials. For an email or payment side effect, use test-only endpoints and permissions, beyond application flags. Cleanup must cover external data and queued jobs, with detection when expiry-based cleanup fails.",
+      "inDesign": "Ask whether resetting or sending mail from one of two simultaneous previews can affect the other or production. Exercise separate run IDs and data areas, with a test-only sink for outbound messages.",
+      "tradeOffs": [
+        {
+          "option": "Provision resources per PR",
+          "gain": "Makes data collisions easier to avoid",
+          "cost": "Requires cost, startup, and cleanup management"
+        },
+        {
+          "option": "Partition shared resources with scoped access",
+          "gain": "Can reduce resource cost",
+          "cost": "Requires validation of boundaries in every read, write, and cleanup path"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Kubernetes — Multi-tenancy",
+          "url": "https://kubernetes.io/docs/concepts/security/multi-tenancy/"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-dependency-lockfiles",
+      "category": "DevOps & in-house development",
+      "title": "Align dependencies with a lockfile and validate upgrades as explicit changes",
+      "keyPoint": "Share an application dependency resolution and prevent silent CI rewrites. Align runtime and install settings; pinned versions still require upgrades and security review.",
+      "body": "A lockfile records resolved direct dependencies and each transitive dependency. npm ci fails on inconsistencies with package.json without updating the lockfile. Settings affecting dependency-tree shape must match those used to create the lock. The lock alone does not fully pin runtimes, OS behavior, native components, install scripts, or external downloads. Pinning supports reproducibility but does not justify leaving vulnerable versions unchanged. Review upgrade diffs and verify important behavior.",
+      "inDesign": "Ask whether a fresh CI runner resolves the same dependencies for the same commit. Check the lockfile and settings, then install and build without relying on a warm cache. Published libraries additionally need compatibility checks against supported consumer combinations.",
+      "tradeOffs": [
+        {
+          "option": "Pin application installation to a lockfile",
+          "gain": "Makes dependency drift easier to diagnose",
+          "cost": "Requires ongoing version maintenance and upgrades"
+        },
+        {
+          "option": "Automatically propose and validate upgrades",
+          "gain": "Helps discover and advance outdated dependencies",
+          "cost": "Requires ownership of compatibility and behavior checks"
+        }
+      ],
+      "sources": [
+        {
+          "title": "npm — npm ci",
+          "url": "https://docs.npmjs.com/cli/v11/commands/npm-ci/"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-module-boundary-tests",
+      "category": "DevOps & in-house development",
+      "title": "Enforce module boundaries with dependency checks alongside diagrams",
+      "keyPoint": "Define exposed entry points and prohibited dependency directions and enforce detectable rules in CI. Inventory existing violations and reduce them incrementally while preventing new ones.",
+      "body": "Modules in one repository can still become tightly coupled through internal classes or direct table access. Express dependency rules such as orders using only the payment public interface, and check for a dependency cycle. Architecture tests detect code dependencies but do not automatically guarantee dynamic calls or runtime data contracts. If existing violations form a baseline, review baseline changes so new violations are not silently accepted.",
+      "inDesign": "Ask why a change requires edits to unrelated module internals. Inspect real dependencies and exposed entry points, then introduce checks at one frequently changed boundary.",
+      "tradeOffs": [
+        {
+          "option": "Block new violations in CI",
+          "gain": "Finds boundary deterioration early",
+          "cost": "Requires managing detection scope and baseline changes"
+        },
+        {
+          "option": "Refine one boundary at a time and expand checks",
+          "gain": "Connects improvements to real change work",
+          "cost": "Requires tracking problems remaining in unchecked boundaries"
+        }
+      ],
+      "sources": [
+        {
+          "title": "ArchUnit — User Guide",
+          "url": "https://www.archunit.org/userguide/html/000_Index.html"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-legacy-characterization",
+      "category": "DevOps & in-house development",
+      "title": "Capture current behavior before changing poorly understood legacy code",
+      "keyPoint": "Capture representative inputs, outputs, and mutations to detect accidental changes. Tests recording current behavior do not prove that behavior is correct for the business.",
+      "body": "A characterization test records what existing code does. Snapshots can cover larger outputs, but accepting diffs requires checking their meaning. Control or normalize nondeterministic timestamps and IDs without hiding important differences such as money or order. Separate refactoring from behavior changes; document the rationale and new expected result when fixing an existing defect. Existing behavior does not justify unsafe behavior.",
+      "inDesign": "Ask which behaviors must remain unchanged and who depends on them. Record normal and boundary cases safely, make a small structural change, and compare with identical inputs.",
+      "tradeOffs": [
+        {
+          "option": "Record and compare a larger output",
+          "gain": "Helps detect broad changes before the code is fully understood",
+          "cost": "Requires diff review and control of unstable values"
+        },
+        {
+          "option": "Test important rules with focused assertions",
+          "gain": "Makes failures and business intent clearer",
+          "cost": "Requires understanding intended behavior and designing cases"
+        }
+      ],
+      "sources": [
+        {
+          "title": "ApprovalTests — Legacy Code",
+          "url": "https://approvaltests.com/legacycode/"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-migration-rehearsal",
+      "category": "DevOps & in-house development",
+      "title": "Rehearse database migrations with volume, invalid data, and concurrent work",
+      "keyPoint": "Validate locks, scan duration, storage, partial failure, and restart beyond SQL success. A small test database does not establish production behavior or duration.",
+      "body": "Migration behavior depends on database version, row count, distribution, indexes, and active transactions. PostgreSQL 18 allows adding a CHECK constraint as NOT VALID to separate existing-row validation, but adding it still requires locking. It applies to subsequent inserts and updates. VALIDATE CONSTRAINT checks existing rows and fails if violations remain. Rehearse each stage and observe locks, scans, normal workload impact, and state after interruption.",
+      "inDesign": "Ask which stage waits under representative volume and long transactions. Use safe data to exercise contention, timeouts, retries, and post-migration consistency.",
+      "tradeOffs": [
+        {
+          "option": "Separate addition from existing-row validation",
+          "gain": "Separates longer validation from constraint addition",
+          "cost": "Requires checking supported constraint types and stage-specific locks"
+        },
+        {
+          "option": "Expand rehearsal scope incrementally",
+          "gain": "Finds procedural errors early",
+          "cost": "Representative production volume and contention still need testing"
+        }
+      ],
+      "sources": [
+        {
+          "title": "PostgreSQL 18 — ALTER TABLE",
+          "url": "https://www.postgresql.org/docs/18/sql-altertable.html"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-terraform-state-locking",
+      "category": "DevOps & in-house development",
+      "title": "Investigate active work before clearing a Terraform state lock",
+      "keyPoint": "Use a locking-capable backend to protect writes to the same state. Do not disable locking or unlock active work merely to avoid waiting.",
+      "body": "A Terraform state file maps configuration to managed resources. With supported backends, operations that write state acquire a state lock and stop if it cannot be acquired. This protects the same state, not resources mistakenly managed by different states. Force unlock is for a lock left by your own operation after automatic release fails; verify the operation has ended and the lock ID matches. Manual cloud changes and alternate delivery paths need separate coordination.",
+      "inDesign": "Ask which execution owns the lock and whether another state also manages the resources. Compare CI activity with the backend, inspect termination and partial changes, then plan resumption.",
+      "tradeOffs": [
+        {
+          "option": "Use a locking-capable backend",
+          "gain": "Prevents concurrent writers to the same state",
+          "cost": "Requires permissions, recovery procedures, and wait monitoring"
+        },
+        {
+          "option": "Partition state by resource ownership",
+          "gain": "Allows unrelated updates to proceed independently",
+          "cost": "Requires avoiding duplicate resource ownership and managing cross-state dependencies"
+        }
+      ],
+      "sources": [
+        {
+          "title": "HashiCorp Terraform — State Locking",
+          "url": "https://developer.hashicorp.com/terraform/language/state/locking"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-ci-trust-boundaries",
+      "category": "DevOps & in-house development",
+      "title": "Keep production mutation privileges away from jobs executing PR code",
+      "keyPoint": "Separate untrusted code execution from privileged delivery. Short-lived tokens or approval screens do not protect a privileged job that executes attacker-controlled code.",
+      "body": "CI executes code through install scripts and tests too. Checking out and running PR code in a privileged context such as pull_request_target can expose secrets or write permissions. Enforce this trust boundary by running validation with minimal permissions and isolated runners; perform delivery separately using verified trusted references and artifacts. Do not blindly execute or unpack untrusted artifacts or caches in a privileged job. Restrict conditions for obtaining deployment credentials to the intended repository and environment.",
+      "inDesign": "Ask who can change a job input and what it executes under which permissions. Trace triggers, checkout targets, reusable workflows, artifacts, and runner reuse to verify an unprivileged validation path.",
+      "tradeOffs": [
+        {
+          "option": "Separate validation and deployment jobs",
+          "gain": "Limits privileges exposed to untrusted code",
+          "cost": "Requires validating artifacts and trust conditions between jobs"
+        },
+        {
+          "option": "Use isolated ephemeral runners",
+          "gain": "Reduces residual state passed to later jobs",
+          "cost": "Requires startup, cleanup, and external-access controls"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GitHub Actions — Secure use reference",
+          "url": "https://docs.github.com/en/actions/reference/security/secure-use"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-development-secret-scope",
+      "category": "DevOps & in-house development",
+      "title": "Scope development secrets separately from production",
+      "keyPoint": "Provide development endpoints and limited credentials rather than distributing production keys. Keep values out of sample configuration and document revocation and reissue.",
+      "body": "Make development accessible by enabling required actions in the right environment, rather than sharing every secret. Issue development credentials and test credentials with least privilege separately from production secret access. Individual or workload identities help with revocation and investigation. Environment variables can still leak through logs, process inspection, or debugging. Design issuance, storage, use, renewal, and deletion as one lifecycle.",
+      "inDesign": "Ask whether a new developer can test required behavior without connecting to production. Inspect examples, secret retrieval, destinations, and permissions, then test offboarding using test credentials.",
+      "tradeOffs": [
+        {
+          "option": "Use individual or workload credentials",
+          "gain": "Supports scoped revocation and attribution",
+          "cost": "Requires issuance, renewal, and access management"
+        },
+        {
+          "option": "Combine local substitutes with external test environments",
+          "gain": "Reduces routine dependence on external secrets",
+          "cost": "Real authentication and integration still need separate validation"
+        }
+      ],
+      "sources": [
+        {
+          "title": "OWASP — Secrets Management Cheat Sheet",
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-observability-acceptance",
+      "category": "DevOps & in-house development",
+      "title": "Include the ability to identify failing behavior and revisions in completion criteria",
+      "keyPoint": "Exercise representative success and failure and identify service, environment, and revision from telemetry. Existing logs alone do not prove operational diagnosability.",
+      "body": "Instrumentation adds logs, metrics, and traces to an implementation. Service identity and running revision help connect errors with a release. Telemetry acceptance criteria should include following a representative failure from its user-visible result to relevant logs. Sampling may omit requests, and instrumentation alone does not complete alerting or recovery. Avoid recording full inputs or secrets and avoid unbounded per-request IDs on metrics.",
+      "inDesign": "Ask whether another engineer can identify the revision and path of a test failure. Exercise it in a test environment, let them use the identifiers and search steps, and add the missing information.",
+      "tradeOffs": [
+        {
+          "option": "Align common attributes and investigation steps",
+          "gain": "Makes investigation easier across responders",
+          "cost": "Requires maintaining identifiers and instrumentation"
+        },
+        {
+          "option": "Instrument important paths in detail",
+          "gain": "Focuses telemetry where needed within a cost budget",
+          "cost": "Requires recognizing uninstrumented and sampled-out paths"
+        }
+      ],
+      "sources": [
+        {
+          "title": "OpenTelemetry — Resource semantic conventions",
+          "url": "https://opentelemetry.io/docs/specs/semconv/resource/"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-review-learning-loop",
+      "category": "DevOps & in-house development",
+      "title": "Use reviews to share rationale and verification alongside fixes",
+      "keyPoint": "Separate behavioral and design issues from preference. Support required changes with concrete cases and verification, enabling the author to explain the decision.",
+      "body": "For knowledge-sharing code reviews, go beyond prescribing edits. Explain the failing case, relevant assumptions, and how to verify it. Distinguish required corrections from optional suggestions and avoid delaying useful improvements over preference. Let authors make and test changes and explain similar decisions later. Preserve concise rationale in comments or design records so internal colleagues can review each other.",
+      "inDesign": "Ask whether the team can make the same judgment on a later PR without the advisor. Review a recent change together and have the author explain the failure condition and test so the reasoning can be reused.",
+      "tradeOffs": [
+        {
+          "option": "Have the author fix and explain",
+          "gain": "Connects reasoning with implementation knowledge",
+          "cost": "Requires time for explanation and verification"
+        },
+        {
+          "option": "Have an advisor fix urgently, then review together",
+          "gain": "Can mitigate immediate impact quickly",
+          "cost": "Skipping follow-up understanding and validation leaves dependency"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google Engineering Practices — The Standard of Code Review",
+          "url": "https://google.github.io/eng-practices/review/reviewer/standard.html"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-library-compatibility",
+      "category": "DevOps & in-house development",
+      "title": "Validate shared-library changes through consumer behavior, beyond version numbers",
+      "keyPoint": "Define the public API and supported environments, then validate representative consumers. Unchanged signatures can still hide breaking changes in exceptions, defaults, or semantics.",
+      "body": "Shared libraries reduce duplication but can spread change impact to every consuming application. Semantic versioning communicates changes to a declared public API; it does not replace validation. Include consumer-dependent exceptions and default behavior in the API contract. Define supported version and environment combinations and test representative consumers before release. For breaking changes, plan old-version support and migration rather than assuming simultaneous upgrades.",
+      "inDesign": "Ask what changes for which consumers. Inventory consumers and versions and exercise normal, edge, and failure cases against the candidate. Assign responsibility for validating consumer upgrades.",
+      "tradeOffs": [
+        {
+          "option": "Keep a small stable public API",
+          "gain": "Makes consumer impact easier to understand",
+          "cost": "Requires separating public capabilities from internal implementation"
+        },
+        {
+          "option": "Release breaking changes in a new major version",
+          "gain": "Allows necessary design improvements",
+          "cost": "Requires migration support and old-version upkeep"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Semantic Versioning — 2.0.0",
+          "url": "https://semver.org/"
+        }
+      ]
+    },
+    {
+      "id": "inhouse-debt-change-evidence",
+      "category": "DevOps & in-house development",
+      "title": "Prioritize technical debt through observed change and incident costs",
+      "keyPoint": "Investigate change frequency, rework, incidents, and change propagation rather than choosing a rewrite based on age or preference. Tie small improvements to upcoming business changes.",
+      "body": "Technical debt interest can be observed as recurring extra effort in understanding, changes, validation, and recovery. A stable rarely changed component differs from one causing change propagation across modules repeatedly. Compare history, incidents, and upcoming work rather than ranking only by complexity scores or line count. Protect behavior with validation and improve boundaries or duplication through small diffs. Check comparable later changes for reduced rework and revisit ineffective interventions.",
+      "inDesign": "Ask which recent change required extra work because of this design. Record examples and impact and select improvements fitting upcoming work. Do not postpone a dangerous defect by labeling it debt.",
+      "tradeOffs": [
+        {
+          "option": "Improve the area alongside upcoming work",
+          "gain": "Connects improvement to real friction",
+          "cost": "Requires separating behavior changes from structural changes and their validation"
+        },
+        {
+          "option": "Reserve time for a cross-cutting improvement",
+          "gain": "Allows focus on problems blocking many changes",
+          "cost": "Requires bounded scope and continued effect measurement"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Martin Fowler — Technical Debt Quadrant",
+          "url": "https://martinfowler.com/bliki/TechnicalDebtQuadrant.html"
+        }
+      ]
+    },
+    {
       "id": "password-hashing",
       "category": "Authentication & authorization",
       "title": "Make password hashing slow on purpose, and put that slowness in your login capacity plan",
@@ -3181,6 +4011,36 @@
         {
           "title": "Zanzibar: Google's Consistent, Global Authorization System (USENIX ATC 2019)",
           "url": "https://research.google/pubs/zanzibar-googles-consistent-global-authorization-system/"
+        }
+      ]
+    },
+    {
+      "id": "async-job-authorization",
+      "category": "Authentication & authorization",
+      "title": "A queued job may outlive the permission that allowed it",
+      "keyPoint": "Permissions and target state can change between enqueue and execution. If revocation must stop pending jobs, authorize the operation again when the job runs.",
+      "body": "An asynchronous job runs later in a separate worker. After acceptance, the requester might leave the organization or the target might move to another tenant. A worker service account having database access does not establish that the requester may operate on that data. Store the server-verified requester, tenant, and target in job metadata protected against tampering, and use them for execution-time authorization. Distinguish operations committed at acceptance from those governed by permissions at execution.",
+      "inDesign": "Ask: does removing permission also stop work that has not started? Where required, authorize before important reads or writes, and defer or deny execution if the check cannot be completed. For long jobs, define recheck boundaries and the treatment of side effects already completed. Test revocation after enqueue and attempts to substitute another tenant in job metadata.",
+      "tradeOffs": [
+        {
+          "option": "Check current permissions immediately before execution",
+          "gain": "Apply permission changes to work that has not started",
+          "cost": "Depend on the authorization system and define defer/deny and resume behavior when checks fail"
+        },
+        {
+          "option": "Split long jobs and recheck before important side effects",
+          "gain": "Provide boundaries for applying permission changes during execution",
+          "cost": "Handle partial output and interrupted work; completed effects are not automatically undone"
+        }
+      ],
+      "sources": [
+        {
+          "title": "OWASP — Multi-Tenant Security: asynchronous work",
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Multi_Tenant_Security_Cheat_Sheet.html"
+        },
+        {
+          "title": "OWASP — Authorization Cheat Sheet",
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
         }
       ]
     },
@@ -3679,6 +4539,36 @@
       ]
     },
     {
+      "id": "tenant-cache-isolation",
+      "category": "Security",
+      "title": "Tenant-separated databases can still leak through shared cache keys",
+      "keyPoint": "Database isolation does not automatically extend to a cache. Define each value’s sharing scope, include tenant or user distinctions that change the result, and authorize cache hits too.",
+      "body": "A cache hit bypasses the database, so correct tenant filters there do not stop a cached value from crossing tenants. If product IDs repeat across tenants, a product-only cache key collides. Values that vary by user or viewing permission need those distinctions too. Derive tenant identity from server-verified context, not unchecked input. Key separation and reader authorization are both required. Identical public reference data, such as country codes, can explicitly use a global sharing scope.",
+      "inDesign": "Ask: may every caller that hits this key receive this value? Check tenant, user, visibility, and other conditions that change the response. Warm the cache as tenant A, then request the same ID as B; test the reverse order and cache misses too. Check hits after permission removal, and define which keys updates or revocations invalidate.",
+      "tradeOffs": [
+        {
+          "option": "Include necessary tenant and user distinctions in shared cache keys",
+          "gain": "Keep shared infrastructure while separating values",
+          "cost": "Centralize key construction and invalidation; additional distinctions increase the number of entries"
+        },
+        {
+          "option": "Use separate cache infrastructure for tenants needing stronger isolation",
+          "gain": "Reduce cross-tenant impact from key mistakes and capacity contention",
+          "cost": "Manage more endpoints, costs, and monitoring; authorization remains necessary within each environment"
+        }
+      ],
+      "sources": [
+        {
+          "title": "OWASP — Multi-Tenant Security: cache and session isolation",
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Multi_Tenant_Security_Cheat_Sheet.html"
+        },
+        {
+          "title": "OWASP — Authorization Cheat Sheet",
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+        }
+      ]
+    },
+    {
       "id": "llm-output-latency",
       "category": "AI & LLM systems",
       "title": "When LLM decoding dominates, shorter output reduces completion latency",
@@ -3962,6 +4852,1196 @@
         {
           "title": "Claude API Docs — Rate limits",
           "url": "https://platform.claude.com/docs/en/api/rate-limits"
+        }
+      ]
+    },
+    {
+      "id": "fde-outcome-framing",
+      "category": "FDE & engineering in the AI era",
+      "title": "Translate “we want AI” into whose outcome should improve",
+      "keyPoint": "Before implementing, agree on the user, painful situation, current performance, and success criteria. Clarify the business outcome behind a requested solution.",
+      "body": "FDE (Forward Deployed Engineer) often refers to an engineer working with customers from problem discovery through implementation and adoption; scope varies by organization. The skill here is problem framing. For a request to build a search chatbot, ask who cannot find what, during which task, and what that delays. Record current time and errors as a baseline, then agree on success criteria and exclusions with domain staff. Shipping an AI feature can leave the original problem unresolved.",
+      "inDesign": "Write one sentence specifying who should achieve what in which situation. Add how to measure the current state and who judges success. Compare alternative solutions against that outcome.",
+      "tradeOffs": [
+        {
+          "option": "Agree on outcomes first",
+          "gain": "Keeps a decision criterion when solutions change",
+          "cost": "Requires discussion and baseline measurement"
+        },
+        {
+          "option": "Use a prototype to clarify the problem",
+          "gain": "Can uncover needs that conversation misses",
+          "cost": "Must distinguish enthusiasm from actual outcomes"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Atlassian — Meet the Forward Deployed Engineer",
+          "url": "https://www.atlassian.com/blog/how-we-build/meet-the-forward-deployed-engineer"
+        }
+      ]
+    },
+    {
+      "id": "fde-workflow-observation",
+      "category": "FDE & engineering in the AI era",
+      "title": "After hearing about a workflow, follow one real case end to end",
+      "keyPoint": "Understand normal steps alongside exceptions, rework, and handoffs. The requester and the actual user may see different parts of the workflow.",
+      "body": "A workflow connects input to completion. Descriptions can omit tacit knowledge such as spreadsheet copying or verbal checks. With user consent, observe a case using familiar tools, separating waiting time from active work. Include rejected cases and missing information. Do not assume one observed case represents everyone; check other staff and records.",
+      "inDesign": "Map inputs, decisions, outputs, and handoffs. At each point ask who checks what when an exception occurs. Handle sensitive information only within authorized boundaries and use redacted examples where needed.",
+      "tradeOffs": [
+        {
+          "option": "Observe work in context",
+          "gain": "Reveals omitted steps and exceptions",
+          "cost": "Requires consent and scheduling; observation can affect behavior"
+        },
+        {
+          "option": "Combine records and interviews",
+          "gain": "Covers longer periods and multiple roles",
+          "cost": "Unrecorded work needs additional investigation"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GOV.UK — Contextual research and observation",
+          "url": "https://www.gov.uk/service-manual/user-research/contextual-research-and-observation"
+        }
+      ]
+    },
+    {
+      "id": "fde-domain-data-meaning",
+      "category": "FDE & engineering in the AI era",
+      "title": "Align business language with data: “complete” can mean different things",
+      "keyPoint": "Before changing models, clarify domain terms, data provenance, and who judges correctness. Matching column names do not imply matching business meaning.",
+      "body": "The domain is the business area being modeled. Sales may call an order complete when booked, while accounting means paid. Mixing these labels makes correctness ambiguous. Check granularity, update times, missing values, and the system of record with domain staff. When labels disagree, clarify the intended business definition or evaluation rule instead of hiding disagreement through a vote. A new definition does not automatically repair historical data.",
+      "inDesign": "Review representative inputs and exceptions with domain staff. Record meaning, origin, and update ownership in the data specification. Check historical data and evaluation sets when definitions change.",
+      "tradeOffs": [
+        {
+          "option": "Agree on definitions before integration",
+          "gain": "Reduces semantic mismatch in evaluation and implementation",
+          "cost": "Requires cross-team agreement and historical checks"
+        },
+        {
+          "option": "Preserve local meanings and translate at boundaries",
+          "gain": "Preserves necessary business distinctions",
+          "cost": "Requires management of mapping rules, versions, and ownership"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google PAIR — Data Collection + Evaluation",
+          "url": "https://pair.withgoogle.com/chapter/data-collection/"
+        }
+      ]
+    },
+    {
+      "id": "fde-risk-first-experiments",
+      "category": "FDE & engineering in the AI era",
+      "title": "Use prototypes to test the assumptions that could sink the project",
+      "keyPoint": "List uncertain assumptions and test those that could invalidate the plan. A successful demo and a viable deployment need separate evidence.",
+      "body": "Risky hypotheses are assumptions whose failure would force a different solution, such as access to approved data or a required operation in an existing API. Define the question, inputs, observations, and continuation criteria before testing. A thin slice across UI, API, and data may help; sometimes a connectivity check is sufficient. Record shortcuts and manual steps rather than treating a prototype as evidence of production readiness.",
+      "inDesign": "List unknowns, impact, and verification methods. Choose the smallest experiment that can change the next decision, including conditions for reducing scope or stopping.",
+      "tradeOffs": [
+        {
+          "option": "Test integration or data first",
+          "gain": "Can investigate a critical assumption cheaply",
+          "cost": "Does not establish usability"
+        },
+        {
+          "option": "Test a thin slice with users",
+          "gain": "Reveals cross-layer issues and interaction flow",
+          "cost": "Requires prototype work and tracking shortcuts"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GOV.UK — How the alpha phase works",
+          "url": "https://www.gov.uk/service-manual/agile-delivery/how-the-alpha-phase-works"
+        }
+      ]
+    },
+    {
+      "id": "ai-simplest-baseline",
+      "category": "FDE & engineering in the AI era",
+      "title": "Compare AI with a rules-based or search-only baseline",
+      "keyPoint": "Use the simplest viable solution as a baseline. Compare quality, cost, and latency on the same inputs and success criteria rather than favoring an approach because it uses AI.",
+      "body": "A baseline may be manual work, rules, or ordinary search. Consider deterministic code for clear transformations and an LLM only where language variation or unstructured text matters. Compare representative cases and exceptions, including additional checking work. If a simple solution meets current requirements, hypothetical future flexibility alone need not justify a complex agent.",
+      "inDesign": "Explain in one sentence where AI is needed, then compare a non-AI alternative. Keep evaluation inputs separate from tuning examples to expose improvements that only fit familiar cases.",
+      "tradeOffs": [
+        {
+          "option": "Use rules or search alone",
+          "gain": "Easier to trace and avoids model inference cost",
+          "cost": "Needs a plan for free text and unfamiliar expressions"
+        },
+        {
+          "option": "Use AI to interpret ambiguous inputs",
+          "gain": "May handle language variation",
+          "cost": "Adds evaluation, review paths, and inference cost"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google — Rules of Machine Learning",
+          "url": "https://developers.google.com/machine-learning/guides/rules-of-ml"
+        }
+      ]
+    },
+    {
+      "id": "ai-workflow-total-value",
+      "category": "FDE & engineering in the AI era",
+      "title": "A faster AI response may still leave the whole task slower",
+      "keyPoint": "Measure completion time and quality including review, correction, and rework. Distinguish time released from actual cash savings.",
+      "body": "Expand the unit of value from one generation to one completed business task. Track adoption, completion, errors, rework, and operating cost. Average time can appear better when difficult cases are shifted to people. Separate human effort from elapsed time and compare similar case difficulty. Include inference, retrieval, monitoring, maintenance, and review. Valuing released time at an hourly rate estimates opportunity cost; it does not automatically represent reduced spending.",
+      "inDesign": "Include cases where AI was unused or handed back to people. When case mix changes, do not interpret a simple before-and-after difference as a causal effect.",
+      "tradeOffs": [
+        {
+          "option": "Measure the full workflow",
+          "gain": "Captures review and rework",
+          "cost": "Requires cross-step measurement and quality judgments"
+        },
+        {
+          "option": "Measure one step first",
+          "gain": "Investigates an initial bottleneck cheaply",
+          "cost": "Needs separate validation of end-to-end benefit"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GOV.UK — Measuring the success of your service",
+          "url": "https://www.gov.uk/service-manual/measuring-success/measuring-the-success-of-your-service"
+        }
+      ]
+    },
+    {
+      "id": "ai-task-context-contract",
+      "category": "FDE & engineering in the AI era",
+      "title": "Give AI the goal, constraints, and verification method together",
+      "keyPoint": "A useful task provides the necessary context: expected result, constraints, references, and a way to verify completion.",
+      "body": "Context is the background and material available to the AI. Assumptions obvious to a colleague may be missing. Write observable behavior as acceptance criteria and supply scope, compatibility requirements, specifications, and verification methods. Separate choices the agent may make from unresolved questions needing input. Select relevant material and resolve conflicting old instructions. Pasting secrets or unfiltered logs is not a substitute for preparing useful context.",
+      "inDesign": "Check whether another person could judge completion from the request. Ask for the change, checks actually performed, and unresolved items, then assess the evidence.",
+      "tradeOffs": [
+        {
+          "option": "Specify outcomes and checks, delegate implementation",
+          "gain": "Preserves implementation flexibility with verifiable outcomes",
+          "cost": "Requires concrete acceptance criteria"
+        },
+        {
+          "option": "Separate unresolved issues into a research task",
+          "gain": "Reduces implementation based on bad assumptions",
+          "cost": "Requires a decision between investigation and implementation"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Anthropic — Effective context engineering for AI agents",
+          "url": "https://www.anthropic.com/research/effective-context-engineering-for-ai-agents"
+        }
+      ]
+    },
+    {
+      "id": "ai-generated-change-verification",
+      "category": "FDE & engineering in the AI era",
+      "title": "Verify AI-generated changes with counterexamples derived from requirements",
+      "keyPoint": "Read the diff and execution evidence against requirements, beyond generated explanations and tests. Implementation and tests may share the same misunderstanding.",
+      "body": "Start verification from invariants, not implementation shape. Passing generated tests cannot expose missing authorization or broken compatibility when those cases are absent. Inspect whether existing checks were weakened or dependencies and data formats changed. Choose counterexamples proportional to impact, such as another user, empty values, concurrency, or failures. Reviewers need not memorize every line, but should be able to explain relevant behavior and remaining uncertainty.",
+      "inDesign": "For each requirement, ask what input or ordering could violate it. Map existing checks and observed results to those cases, distinguishing agent claims from evidence in execution logs.",
+      "tradeOffs": [
+        {
+          "option": "Focus on the diff and existing tests",
+          "gain": "Uses established checks efficiently",
+          "cost": "Requires identifying risks absent from existing tests"
+        },
+        {
+          "option": "Add counterexamples at important boundaries",
+          "gain": "Can reveal misunderstandings and omissions",
+          "cost": "Requires selecting and running cases proportional to impact"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GitHub — Application card: GitHub Copilot Agents",
+          "url": "https://docs.github.com/en/copilot/responsible-use/agents"
+        }
+      ]
+    },
+    {
+      "id": "ai-debug-evidence-loop",
+      "category": "FDE & engineering in the AI era",
+      "title": "Treat AI’s proposed causes as hypotheses and narrow them with evidence",
+      "keyPoint": "Separate symptoms, established facts, hypotheses, and the next check. Prefer observations that distinguish candidate causes over a plausible narrative.",
+      "body": "During debugging, trace boundaries such as input, retrieval, model output, and postprocessing to locate the first deviation. AI can propose candidates but is not evidence of a cause. Preserve reproduction conditions and predict observations under each hypothesis before checking. After a fix, rerun the original failure and nearby cases. During an incident, mitigation may precede diagnosis; record temporary recovery separately from an established cause.",
+      "inDesign": "For a retrieval hypothesis, check whether the necessary document was returned. For a generation hypothesis, inspect whether correct evidence reached the model. Add minimal instrumentation where visibility is missing, without retaining sensitive information.",
+      "tradeOffs": [
+        {
+          "option": "Inspect evidence at system boundaries",
+          "gain": "Helps narrow the layer needing a fix",
+          "cost": "Requires instrumentation and reproduction data"
+        },
+        {
+          "option": "Mitigate impact before continuing diagnosis",
+          "gain": "Can reduce user impact sooner",
+          "cost": "May leave the cause unresolved and requires evidence preservation"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google SRE — Effective Troubleshooting",
+          "url": "https://sre.google/sre-book/effective-troubleshooting/"
+        }
+      ]
+    },
+    {
+      "id": "ai-autonomy-action-boundaries",
+      "category": "FDE & engineering in the AI era",
+      "title": "Scope AI autonomy by action impact and recovery options",
+      "keyPoint": "Distinguish research, drafting, and execution. Match permissions and checks to impact, enforcing limits in the execution layer rather than relying only on prompt instructions.",
+      "body": "Autonomy is the scope of decisions and actions an AI may carry out toward a goal. Reads can expose sensitive information or send it externally, so they are not automatically harmless. Define limits on targets, volume, cost, and duration, plus stopping and escalation conditions. For side effects such as money movement or deletion, establish the concrete action before required approval. Bind approval to the target and arguments, and verify permissions at execution time.",
+      "inDesign": "Review failure impact, detection, stopping, and recovery alongside model accuracy. Test unauthorized targets, exceeded limits, and changed arguments to verify rejection by the execution layer.",
+      "tradeOffs": [
+        {
+          "option": "Automate drafting",
+          "gain": "Keeps actions reviewable before execution",
+          "cost": "Retains review work and can create queues"
+        },
+        {
+          "option": "Execute automatically within a limited scope",
+          "gain": "Can reduce waiting for routine work",
+          "cost": "Requires execution controls, monitoring, recovery, and prior validation"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Anthropic — Building effective agents",
+          "url": "https://www.anthropic.com/research/building-effective-agents"
+        }
+      ]
+    },
+    {
+      "id": "fde-adoption-operational-handoff",
+      "category": "FDE & engineering in the AI era",
+      "title": "Plan adoption so local staff can keep using and recovering the service",
+      "keyPoint": "After a working demo, establish entry points, exception handoffs, and operational ownership. Test with users whether the service works without the implementing engineer present.",
+      "body": "Adoption means sustained usefulness for the target task, beyond usage counts. Decide where the service fits into existing work, who receives exceptions, and who decides on updates or incidents. Handoffs should cover normal operation, exceptions, stopping, and recovery. Business and operational owners may differ; make decision and contact boundaries explicit. Training attendance or an enthusiastic demo does not establish that staff can operate it.",
+      "inDesign": "Have local staff handle normal and exceptional cases to identify missing procedures or permissions. Use reasons for non-use, abandonment, and human handoff to distinguish feature issues from workflow integration problems.",
+      "tradeOffs": [
+        {
+          "option": "Have implementers support initial operation",
+          "gain": "Makes early problems easier to understand and fix",
+          "cost": "Needs exit criteria and transfer to a receiving owner"
+        },
+        {
+          "option": "Rehearse operation by local staff",
+          "gain": "Reveals missing procedures, permissions, and contacts",
+          "cost": "Requires staff time and a suitable test environment"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GOV.UK — What each role does in a service team",
+          "url": "https://www.gov.uk/service-manual/the-team/what-each-role-does-in-service-team"
+        }
+      ]
+    },
+    {
+      "id": "fde-field-learning-reuse",
+      "category": "FDE & engineering in the AI era",
+      "title": "Return field learning to the product with the conditions for reuse",
+      "keyPoint": "Separate customer configuration from shared mechanisms and verify broader need before generalizing. Reuse learning, not confidential data or customer-specific permissions.",
+      "body": "Generalizing improvements found in the field can reduce repeated work. But copying a one-customer implementation into a shared product can spread local exceptions and assumptions. Variation points include data formats, business rules, and approval paths. Explain shared behavior and variation, then check another use case. Separate customer connections, data, and permissions, and design maintenance ownership and compatibility.",
+      "inDesign": "Report the problem, applicability conditions, reusable candidate, local details, and evidence from another case. Record decisions against generalization and keep implementation local when broader need is unproven.",
+      "tradeOffs": [
+        {
+          "option": "Keep a local implementation",
+          "gain": "Adapts quickly to local requirements",
+          "cost": "Can duplicate maintenance across customers"
+        },
+        {
+          "option": "Separate shared components and local configuration",
+          "gain": "Can reduce repeated implementation and fixes",
+          "cost": "Requires valid abstractions, isolation, and compatibility maintenance"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Atlassian — Meet the Forward Deployed Engineer",
+          "url": "https://www.atlassian.com/blog/how-we-build/meet-the-forward-deployed-engineer"
+        }
+      ]
+    },
+    {
+      "id": "fde-stakeholder-decision-map",
+      "category": "FDE & engineering in the AI era",
+      "title": "Map who can decide on workflow, data, and operations beyond the customer contact",
+      "keyPoint": "Support from a customer contact may not cover every deployment decision. Identify the decision owner, advisers, and deadline for each issue, including decisions delegated to the team.",
+      "body": "In an FDE engagement, users, outcome owners, data decision makers, and operators may be different people. Connect each stakeholder to specific decisions rather than listing job titles. Decision owners vary by organization and engagement, so verify authority instead of inferring it from seniority. Agree which decisions the delivery team can make and an escalation path for decisions beyond that boundary.",
+      "inDesign": "List decisions such as expanding to another department, using another data source, or stopping the service. Record an owner, required evidence, and deadline. One person may hold several roles; avoid adding unnecessary approval layers.",
+      "tradeOffs": [
+        {
+          "option": "Coordinate stakeholders through one contact",
+          "gain": "Keeps communication organized",
+          "cost": "Requires checking decision authority with the contact"
+        },
+        {
+          "option": "Verify critical decisions with their owners",
+          "gain": "Surfaces conditions and concerns early",
+          "cost": "Requires coordination and keeping the main contact informed"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GOV.UK — Governance principles for agile service delivery",
+          "url": "https://www.gov.uk/service-manual/agile-delivery/governance-principles-for-agile-service-delivery"
+        }
+      ]
+    },
+    {
+      "id": "fde-access-dependency-plan",
+      "category": "FDE & engineering in the AI era",
+      "title": "Track access dependencies with owners, dates, and proof of usable connectivity",
+      "keyPoint": "Accounts, network access, authorization, and provider settings need work beyond coding. Plan backward from when they are needed and distinguish scheduled access from verified access.",
+      "body": "A dependency is a condition another person or system must satisfy for your work to proceed. Requested, issued, and usable from the runtime are different access states. Track an owner, prerequisites, required date, and verification method for each dependency. Lead time includes review and scheduling waits. If access is delayed, identify what approved test data or mocks can support and what remains unverified until real connectivity is available. Do not plan around shared administrator credentials.",
+      "inDesign": "Verify the required minimal operation using the service identity and intended network path. A successful connection from a developer session does not verify the production path.",
+      "tradeOffs": [
+        {
+          "option": "Develop with a mock while access is pending",
+          "gain": "Reduces waiting on independent work",
+          "cost": "Leaves real connectivity and provider behavior unverified"
+        },
+        {
+          "option": "Verify the runtime access path early",
+          "gain": "Finds access conditions that may invalidate the plan",
+          "cost": "Requires provider coordination and a test environment"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GOV.UK — How the discovery phase works",
+          "url": "https://www.gov.uk/service-manual/agile-delivery/how-the-discovery-phase-works"
+        }
+      ]
+    },
+    {
+      "id": "fde-data-readiness-profile",
+      "category": "FDE & engineering in the AI era",
+      "title": "Measure whether available data is timely and fit for the target workflow",
+      "keyPoint": "Record count and few missing fields are not enough. Measure accuracy, completeness, and timeliness against workflow needs and decide what to do when they fall short.",
+      "body": "Data profiling examines missing values, duplicates, distributions, and update times. Data completeness concerns whether required fields and records are present; it differs from accuracy. Timeliness concerns whether updates and delivery are recent enough for the intended use. Examine departments, periods, and exception types rather than relying only on aggregate metrics. Before asking a model to guess missing critical facts, compare source improvements, a narrower scope, and handoff to a person.",
+      "inDesign": "Set acceptable update lag and required fields for each use, then inspect authorized samples. If the timestamp only records ingestion, verify when the business event occurred as well.",
+      "tradeOffs": [
+        {
+          "option": "Limit scope to what the data supports",
+          "gain": "Starts with useful work supported by available data",
+          "cost": "Leaves some needed workflows out of scope"
+        },
+        {
+          "option": "Improve the source and update path",
+          "gain": "Makes sustained required quality more achievable",
+          "cost": "Requires changes and operational coordination with source owners"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GOV.UK — The Government Data Quality Framework",
+          "url": "https://www.gov.uk/government/publications/the-government-data-quality-framework/the-government-data-quality-framework"
+        }
+      ]
+    },
+    {
+      "id": "fde-scope-change-negotiation",
+      "category": "FDE & engineering in the AI era",
+      "title": "Reprioritize requests with their impact on goals, dates, and quality",
+      "keyPoint": "Even small requests add verification, rollout, and maintenance work. Agree with the authorized owner what enters scope, what moves later, and whether dates change.",
+      "body": "Scope is the outcome and coverage being delivered now. Check how a request supports the original goal, then estimate effects on data, evaluation, procedures, and operations as well as implementation. With fixed dates and staffing, discuss priority and what would be displaced. Do not balance the plan by dropping security or required quality conditions. Learning can justify scope changes; unshared impacts and accumulating commitments cause trouble.",
+      "inDesign": "Record each change request with its need, impact, options, and decision owner. If new unknowns appear, agree on a bounded investigation before treating estimates as firm.",
+      "tradeOffs": [
+        {
+          "option": "Launch the currently agreed scope first",
+          "gain": "Validates the agreed value sooner",
+          "cost": "Defers the new request"
+        },
+        {
+          "option": "Adjust scope or dates to include the request",
+          "gain": "Addresses important needs revealed by learning",
+          "cost": "Requires renegotiating the effects on existing commitments"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Scrum Guides — The 2020 Scrum Guide",
+          "url": "https://scrumguides.org/scrum-guide.html"
+        }
+      ]
+    },
+    {
+      "id": "fde-business-acceptance-cases",
+      "category": "FDE & engineering in the AI era",
+      "title": "Agree business acceptance using concrete inputs and expected outcomes",
+      "keyPoint": "Translate usable in practice into normal, exceptional, and deferred cases with expected handling. Resolve disagreement over expected outcomes before tuning the model.",
+      "body": "Acceptance criteria describe outcomes that demonstrate a user need has been met. With domain staff, select authorized cases and pair each input with the applicable policy version, expected outcome, and rationale. When staff disagree, investigate conditions and ambiguous rules instead of fixing the reference label by mechanical majority vote. Define handoff conditions and an owner for unresolved cases. Keep separate check cases out of tuning so repeated adjustments do not make evaluation misleading.",
+      "inDesign": "Specify expected behavior for missing evidence, out-of-scope requests, and cases needing approval as well as correct answers. Success on an evaluation set does not guarantee behavior on unseen inputs.",
+      "tradeOffs": [
+        {
+          "option": "Review a small set of critical cases together",
+          "gain": "Exposes differences in assumptions and judgment",
+          "cost": "Needs domain staff time and provides limited coverage"
+        },
+        {
+          "option": "Expand cases using agreed criteria",
+          "gain": "Makes failures by department or exception easier to examine",
+          "cost": "Requires label quality control and separate check cases"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GOV.UK — Writing user stories",
+          "url": "https://www.gov.uk/service-manual/agile-delivery/writing-user-stories"
+        }
+      ]
+    },
+    {
+      "id": "fde-external-integration-contract",
+      "category": "FDE & engineering in the AI era",
+      "title": "Agree integration semantics for acceptance, completion, and redelivery",
+      "keyPoint": "Separate API acceptance from completion of the customer workflow. Verify identifiers, states, duplicate or reordered notifications, and query and recovery procedures with the provider.",
+      "body": "An integration contract covers more than JSON types. Define accepted, completed, and canceled states, mappings to customer IDs, and lookup after timeouts. Design webhook handling around the provider guarantees. Deduplication avoids processing the same notification repeatedly but does not solve reordering of distinct notifications. Where needed, query authoritative state or versions so stale events cannot regress local state. Verify signatures and authorization for the target, and test failures around persistence and side effects.",
+      "inDesign": "Use the provider test environment to exercise failures after acceptance, duplicate and reordered notifications, and status lookup. Verify real provider responses as well as mocks, and record unverified production differences.",
+      "tradeOffs": [
+        {
+          "option": "Track state mainly through notifications",
+          "gain": "Receives changes with less periodic polling",
+          "cost": "Needs signature checks and handling of duplicates, missing events, and reordering"
+        },
+        {
+          "option": "Query authoritative state when needed",
+          "gain": "Resolves state that notifications leave unclear",
+          "cost": "Adds lookup load, rate limits, and races around the lookup time"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Stripe — Receive Stripe events in your webhook endpoint",
+          "url": "https://docs.stripe.com/webhooks"
+        }
+      ]
+    },
+    {
+      "id": "fde-shadow-to-pilot",
+      "category": "FDE & engineering in the AI era",
+      "title": "Shadow evaluation and a live pilot answer different questions",
+      "keyPoint": "Move from comparing results without changing workflow to limited live use. Agreement rates alone do not justify automation; examine human corrections, exceptions, and what happens after stopping.",
+      "body": "Shadow evaluation computes candidate results on authorized real inputs without applying them to the official workflow. Block writes, sending, charging, and other side effects in the execution path, and check data handling and added load. This helps inspect output differences but does not establish usability or review effort. A pilot limits users, workflows, and duration with support and stop decision owners. A narrow participant group or short window does not establish performance across the company or at peak periods.",
+      "inDesign": "Define the question, scope, progression criteria, and stopping conditions at each stage. Prepare to reconcile pending cases and already executed external actions after stopping the feature.",
+      "tradeOffs": [
+        {
+          "option": "Compare outputs before applying them",
+          "gain": "Examines differences by input without altering the official process",
+          "cost": "Still needs separate verification of usability and review effort"
+        },
+        {
+          "option": "Pilot limited use with support",
+          "gain": "Observes corrections and exceptions in the real workflow",
+          "cost": "Affects users and needs stop and case-handling procedures"
+        }
+      ],
+      "sources": [
+        {
+          "title": "AWS — Shadow tests",
+          "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/shadow-tests.html"
+        },
+        {
+          "title": "Google SRE Workbook — Canarying Releases",
+          "url": "https://sre.google/workbook/canarying-releases/"
+        }
+      ]
+    },
+    {
+      "id": "fde-business-result-reconciliation",
+      "category": "FDE & engineering in the AI era",
+      "title": "Reconcile business IDs and states as well as counts after migration or sync",
+      "keyPoint": "Matching sent and imported counts can still hide wrong records or states. Align the comparison scope and time, then track missing, mismatched, and unknown results through resolution.",
+      "body": "Business reconciliation compares how separate systems represent the same business outcome. Define business IDs, periods, exclusions, the authoritative source, and field transformations. Reading changing data at different times can create temporary mismatches. Agree how to align comparison cutoffs or versions, and separate pending updates, true mismatches, and unverifiable results. A missing record and an unexpected record can cancel out in total counts. Identify affected records and inspect external action outcomes before deciding on correction or reprocessing.",
+      "inDesign": "Separate count summaries from per-ID checks and assign owners and resolution dates to differences. Do not count skipped or pending validation as matches. Include reconciliation load in the plan.",
+      "tradeOffs": [
+        {
+          "option": "Use counts and aggregates for an initial check",
+          "gain": "Finds signs of large gaps at lower cost",
+          "cost": "Misses equal-count substitutions and individual field mismatches"
+        },
+        {
+          "option": "Compare IDs and critical fields record by record",
+          "gain": "Identifies what needs correction and how",
+          "cost": "Requires aligned comparison timing and query-load management"
+        }
+      ],
+      "sources": [
+        {
+          "title": "AWS — AWS DMS data validation",
+          "url": "https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Validating.html"
+        }
+      ]
+    },
+    {
+      "id": "fde-evidence-decision-updates",
+      "category": "FDE & engineering in the AI era",
+      "title": "Report evidence and required decisions alongside delivery progress",
+      "keyPoint": "Separate completed work, unknowns, blockers, and who needs to decide by when. A successful demo does not establish that deployment conditions have been verified.",
+      "body": "Customer updates should support the next decision as well as describe work done. Evidence identifies the inputs, environment, version, and observation. State verified scope and unknowns, and attach an owner and required date to each blocker. Compare options by workflow impact, cost, dates, and remaining unknowns. Share relevant evidence with confidential material removed rather than full logs. After a decision, update scope and assumptions so the team can proceed without repeatedly reopening the same discussion.",
+      "inDesign": "Use a brief update covering facts, unknowns, impact, options, recommendation, decision owner, and deadline. Present a recommendation as input to a decision, not as an already agreed direction.",
+      "tradeOffs": [
+        {
+          "option": "Use short recurring decision updates",
+          "gain": "Surfaces differences and dependencies early",
+          "cost": "Needs owner participation and prepared decision evidence"
+        },
+        {
+          "option": "Keep detailed evidence in a reference location",
+          "gain": "Lets reviewers inspect verification conditions",
+          "cost": "Needs a separate summary of key points and unknowns to support timely decisions"
+        }
+      ],
+      "sources": [
+        {
+          "title": "GOV.UK — Agile tools and techniques",
+          "url": "https://www.gov.uk/service-manual/agile-delivery/agile-tools-techniques"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-workflow-or-agent",
+      "category": "AI architecture",
+      "title": "Keep control in code when the next step is already known",
+      "keyPoint": "Use a workflow for known steps and an agent where results must determine the next action. Identify the decisions needed before adding agents.",
+      "body": "A workflow defines order and branches in code; an agent lets a model select actions from the current situation. They can coexist. Asking a model to plan every step of routine extraction, validation, and storage makes routes and call counts variable. Flexibility may help research where sources emerge during execution, but requires stopping conditions, cost limits, and tool permissions. Consider parallelism for independent work and evaluate shared state and integration overhead.",
+      "inDesign": "Classify branches as known rules or decisions requiring new observations. Compare with a fixed workflow on quality, step count, cost, and recovery.",
+      "tradeOffs": [
+        {
+          "option": "Use a fixed workflow",
+          "gain": "Makes routes and checks easier to understand",
+          "cost": "Needs added design for unforeseen branches"
+        },
+        {
+          "option": "Use an agent for exploration",
+          "gain": "Can adapt exploration to new information",
+          "cost": "Adds complexity in permissions, stopping, cost, and verification"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Anthropic — Building effective agents",
+          "url": "https://www.anthropic.com/research/building-effective-agents"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-rag-or-tuning",
+      "category": "AI architecture",
+      "title": "Separate updating knowledge from changing model behavior",
+      "keyPoint": "Compare retrieval for changing evidence and prompts or fine-tuning for behavior and task learning. RAG and fine-tuning can coexist; neither automatically guarantees correctness.",
+      "body": "RAG retrieves evidence into model input. Fine-tuning adjusts model weights with training data. First locate whether failures involve missing knowledge, retrieval, instructions, or output behavior. Compare update frequency, citation needs, available examples, cost, and operations. RAG can use incorrect sources, and deleting source files does not by itself ensure removal of their influence from fine-tuned weights. Repeatedly retraining for new policies also requires update and validation work.",
+      "inDesign": "Evaluate answers about new information separately from behavior on the same information. Specify how updates, provenance, and deletion requests apply to each asset.",
+      "tradeOffs": [
+        {
+          "option": "Retrieve changing evidence",
+          "gain": "Supports updates and provenance without retraining",
+          "cost": "Requires ingestion, authorization, retrieval, and generation operations"
+        },
+        {
+          "option": "Fine-tune behavior",
+          "gain": "May improve task fit with sufficient examples",
+          "cost": "Requires training-data quality, training cost, and per-version evaluation"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Microsoft Foundry — Retrieval augmented generation (RAG) and indexes",
+          "url": "https://learn.microsoft.com/en-us/azure/foundry/concepts/retrieval-augmented-generation"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-retrieval-authorization",
+      "category": "AI architecture",
+      "title": "Enforce RAG authorization before evidence crosses a trust boundary",
+      "keyPoint": "Filtering only the answer is too late if unauthorized documents have already reached a model. Define whose permissions govern data at retrieval, reranking, generation, and cache boundaries.",
+      "body": "An ACL records which principals may read a document. Use server-verified identity and tenant context to pass only authorized evidence downstream. Broad internal candidate search is acceptable only within an authorized trust boundary; restrict data before external reranking or generation. Replicated ACLs can lag. Requirements for immediate revocation need measures such as checking the authoritative source. Cached answers and conversation history do not automatically retain valid access to their original evidence.",
+      "inDesign": "Test cross-tenant requests, revocation, stale caches, and shared links. Define when permission changes during generation take effect and recheck before delivery when required.",
+      "tradeOffs": [
+        {
+          "option": "Restrict results using indexed ACLs",
+          "gain": "Supports permission-aware retrieval at scale",
+          "cost": "Requires managing identity and propagation delay"
+        },
+        {
+          "option": "Recheck authoritative permissions at required boundaries",
+          "gain": "Reduces reliance on stale indexed permissions",
+          "cost": "Adds lookup cost, latency, and failure handling"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google Cloud — Set up data source access control",
+          "url": "https://docs.cloud.google.com/generative-ai-app-builder/docs/data-source-access-control"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-output-contracts",
+      "category": "AI architecture",
+      "title": "Schema-valid JSON can still contain unacceptable business values",
+      "keyPoint": "Use structured output for shape, then validate business conditions such as amount, state, and authorization in the execution layer. Distinguish refusal, truncation, and tool failures from ordinary data.",
+      "body": "Structured output produces schema-conforming data on supported model and API combinations. JSON Schema conformance does not prove referenced objects exist or information is accurate. Supported constraints vary, and not every business rule is expressible. Downstream processing should check shape, value consistency, current state, and requester permissions. Generated SQL or HTML also needs safe APIs or context-appropriate escaping rather than direct execution or rendering.",
+      "inDesign": "Map the schema against server-side validation responsibilities. Test schema-valid values that violate business rules. Choose bounded retries, pending states, or human handoff for failures.",
+      "tradeOffs": [
+        {
+          "option": "Combine supported structured output with business validation",
+          "gain": "Stabilizes shape while checking business requirements",
+          "cost": "Requires checking model and schema support"
+        },
+        {
+          "option": "Parse ordinary output and validate shape and business rules",
+          "gain": "Works where constrained output is unavailable",
+          "cost": "Adds formatting-error and retry handling"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Amazon Bedrock — Structured outputs",
+          "url": "https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html"
+        },
+        {
+          "title": "OWASP — Improper Output Handling",
+          "url": "https://genai.owasp.org/llmrisk/llm052025-improper-output-handling/"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-model-routing",
+      "category": "AI architecture",
+      "title": "Measure routing errors and duplicate work in model cascades",
+      "keyPoint": "Use evaluation to decide which tasks suit a lighter model and which need escalation. Running a stronger model after a smaller one incurs both calls’ cost and latency.",
+      "body": "Model routing selects models for different tasks. A cascade escalates after inspecting an initial result, unlike a router that chooses one model upfront. Do not equate self-reported confidence with correctness; calibrate routing by language, task, and input length. Measure incorrect acceptance, unnecessary escalation, and validator cost. Escalated cases are often harder, so average model quality may not describe that subset.",
+      "inDesign": "Compare cost per incoming request and completion time after satisfying quality requirements. Record routing versions and actual models, with a rollback route if selection degrades.",
+      "tradeOffs": [
+        {
+          "option": "Select one model upfront",
+          "gain": "Usually avoids two generations",
+          "cost": "Requires reliable selection from request features"
+        },
+        {
+          "option": "Escalate after inspecting a lighter model’s output",
+          "gain": "Can use the initial output as evidence",
+          "cost": "Escalated cases incur both stages’ cost and latency"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Amazon Bedrock — Understanding intelligent prompt routing",
+          "url": "https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-routing.html"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-context-budget",
+      "category": "AI architecture",
+      "title": "Budget context for tool results and output as well as history",
+      "keyPoint": "Check model input and output limits and allocate instructions, input, history, retrieval, tools, and output. Fitting the window does not establish correct use of the evidence.",
+      "body": "A token budget allocates limited context among information sources. Context window accounting, output limits, and reasoning-token treatment depend on the provider and model. Long tool results and repeated history can crowd out evidence. Bound retrieval and tool output, deduplicate, and summarize when needed. Compaction can lose numbers, exceptions, or provenance; preserve critical facts structurally with access to originals. Measure quality and latency on long inputs as well.",
+      "inDesign": "Test long conversations combined with large tool outputs. On overflow, use narrower retrieval, summarization, or clarification rather than silently discarding critical information.",
+      "tradeOffs": [
+        {
+          "option": "Select retrieval and tool content",
+          "gain": "Reduces irrelevant context and input cost",
+          "cost": "Requires measuring lost evidence"
+        },
+        {
+          "option": "Compact history while retaining references",
+          "gain": "Helps continue long tasks within limited context",
+          "cost": "Requires managing lost detail and retrieval latency"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Anthropic — Effective context engineering for AI agents",
+          "url": "https://www.anthropic.com/research/effective-context-engineering-for-ai-agents"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-end-to-end-latency",
+      "category": "AI architecture",
+      "title": "A fast first token does not imply fast answer or action completion",
+      "keyPoint": "Measure first display, usable answer, and action completion separately. Allocate stage budgets from an end-to-end deadline including retrieval, generation, validation, tools, and queues.",
+      "body": "TTFT measures time to the first token, with start and token definitions depending on instrumentation. Streaming a preamble does not complete evidence retrieval or an external action. Serial dependencies and independent parallel stages have different paths. Trace the critical path and bound retrieval and retries near the deadline. Do not add stage p95 values and call the sum end-to-end p95; measure elapsed time for complete requests.",
+      "inDesign": "Separate acknowledgement targets from task-completion targets. Consider asynchronous execution when needed, defining accepted, running, failed, and completed states and result retrieval.",
+      "tradeOffs": [
+        {
+          "option": "Wait synchronously for completion",
+          "gain": "Makes request/result correspondence simple",
+          "cost": "Long work adds deadline and connection-management pressure"
+        },
+        {
+          "option": "Acknowledge and execute asynchronously",
+          "gain": "Supports explicit long-running state and recovery",
+          "cost": "Requires jobs, notification, result retrieval, and failure handling"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google Cloud — Gemini Enterprise access metrics",
+          "url": "https://docs.cloud.google.com/gemini/enterprise/docs/access-metrics"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-release-manifest",
+      "category": "AI architecture",
+      "title": "Record AI releases as a combination of model, prompt, and retrieval assets",
+      "keyPoint": "Track prompts, retrieval settings, index versions, tool contracts, and evaluation versions alongside the model. Verify that the rollback combination remains available and compatible.",
+      "body": "A release manifest identifies the assets composing a deployed version. In RAG, chunking, embeddings, retrieval, or reranking changes can alter answers. Check model aliases and availability windows too. Records help comparison and diagnosis but do not guarantee identical text under nondeterminism or provider changes. Rolling back an old index must not undo revocations or deletions; recovery still requires compatibility and current authorization.",
+      "inDesign": "Make responses traceable to configuration versions and retain evaluation-set and grader versions. Test the rollback configuration for tool/data compatibility and deleted-document handling.",
+      "tradeOffs": [
+        {
+          "option": "Version configuration as a bundle",
+          "gain": "Makes tested and deployed configurations comparable",
+          "cost": "Requires asset retention and bundle management"
+        },
+        {
+          "option": "Update components independently with compatibility checks",
+          "gain": "Supports smaller updates",
+          "cost": "Adds combinations and recovery conditions to verify"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google Cloud — Deploy and operate generative AI applications",
+          "url": "https://docs.cloud.google.com/architecture/deploy-operate-generative-ai-applications"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-quality-gates",
+      "category": "AI architecture",
+      "title": "Use task-specific release gates for failures hidden by averages",
+      "keyPoint": "Define release criteria by task, language, permissions, and failure severity rather than only an overall average. Calibrate LLM grading against human criteria before using it for decisions.",
+      "body": "A quality gate is an evaluation condition required before release or model changes. Combining style gains and unauthorized disclosure into one score can hide severe failures. Separate code-checkable structure or side effects, human judgments of evidence, and model-assisted grading. Compare graders against expert-reviewed examples to expose shared misunderstandings. Evaluate abstention through both completion and incorrect-guidance rates. Zero failures in a finite test set does not prove zero production failures.",
+      "inDesign": "Agree on unacceptable failures with domain staff. Include category sample sizes and failure examples in release decisions. Separate evaluation from tuning data and evaluate grader updates too.",
+      "tradeOffs": [
+        {
+          "option": "Separate mandatory gates and quality scores",
+          "gain": "Prevents severe failures from being averaged away",
+          "cost": "Requires agreement and evaluation data for each category"
+        },
+        {
+          "option": "Combine human and automated grading",
+          "gain": "Balances evaluation scale and nuanced judgment",
+          "cost": "Requires calibration, disagreement analysis, and maintenance"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Anthropic — Demystifying evals for AI agents",
+          "url": "https://www.anthropic.com/research/demystifying-evals-for-ai-agents"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-observability",
+      "category": "AI architecture",
+      "title": "Connect AI execution traces to business outcomes",
+      "keyPoint": "Trace retrieval, model, and tool calls together with cost, duration, and validation outcomes. Full content retention or model self-explanation does not replace audit evidence and diagnosis.",
+      "body": "Traces correlate a request’s operations; a span records one unit of work. For AI, link relevant model/prompt versions, source identifiers, tool outcomes, retries, usage, and business results. HTTP success needs a separate signal if the task remains incomplete. Avoid indiscriminate prompt and response retention. Identifiers can also be sensitive; apply access and retention limits. A model’s stated explanation is distinct from evidence of actual external actions.",
+      "inDesign": "Test whether representative failures can be traced to a stage and reconciled with external outcomes. Separate minimal continuous telemetry from additional approved diagnostic collection.",
+      "tradeOffs": [
+        {
+          "option": "Continuously retain minimal metadata",
+          "gain": "Supports operational analysis with less content exposure",
+          "cost": "Content-specific failures may need further diagnosis"
+        },
+        {
+          "option": "Temporarily collect authorized diagnostic data",
+          "gain": "Helps investigate hard-to-reproduce content issues",
+          "cost": "Requires purpose, access, retention, and deletion controls"
+        }
+      ],
+      "sources": [
+        {
+          "title": "OpenTelemetry — Traces",
+          "url": "https://opentelemetry.io/docs/concepts/signals/traces/"
+        },
+        {
+          "title": "OWASP — Logging Cheat Sheet",
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-durable-agent-execution",
+      "category": "AI architecture",
+      "title": "Saving conversation history does not prevent duplicate side effects",
+      "keyPoint": "For resumable work, distinguish plans and conversation from completed external actions. Handle crashes between action success and recording completion through idempotency or outcome lookup.",
+      "body": "A checkpoint stores resumable state, but may not share a transaction with an external API. If a refund succeeds and the process stops before recording completion, recovery may call it again. Persist a business operation ID and arguments, using supported idempotency keys or lookup to resolve the outcome. Do not blindly retry unknown outcomes after key expiry or when lookup is unavailable. Recheck current permissions and approval validity on resume rather than relying only on conversation history.",
+      "inDesign": "Test crashes immediately before and after external success and persistence. Distinguish completed, failed, and unknown states, with reconciliation ownership and manual recovery.",
+      "tradeOffs": [
+        {
+          "option": "Combine external idempotency with persisted action state",
+          "gain": "Can reduce duplicate effects within supported guarantees",
+          "cost": "Requires managing key scope, retention, and argument matching"
+        },
+        {
+          "option": "Recover through outcome lookup and human reconciliation",
+          "gain": "Can resolve outcomes without atomic cross-system persistence",
+          "cost": "Needs pending states and procedures when lookup is unavailable"
+        }
+      ],
+      "sources": [
+        {
+          "title": "AWS Lambda — Durable execution idempotency",
+          "url": "https://docs.aws.amazon.com/lambda/latest/dg/durable-execution-idempotency.html"
+        }
+      ]
+    },
+    {
+      "id": "ai-architecture-inference-hosting",
+      "category": "AI architecture",
+      "title": "Choose inference hosting by operating requirements, not unit price alone",
+      "keyPoint": "Compare external APIs, managed deployments, and self-hosting on quality, data boundaries, load, and ownership. GPU-hour or per-token prices alone do not establish total cost.",
+      "body": "Self-hosting means operating the model runtime yourself; managed platforms may also host your own model. A private model and fully self-operated infrastructure are not synonymous. Include idle capacity, redundancy, patching, deployment, monitoring, and on-call work for self-operation. External APIs still require review of data use and retention, location, quotas, and outage terms. Use peaks and utilization plus measured performance at the required latency, and check model licensing.",
+      "inDesign": "Compare total cost at equivalent quality and load only among candidates meeting mandatory requirements. Assign operational ownership and define when workload changes trigger reassessment.",
+      "tradeOffs": [
+        {
+          "option": "Use managed inference",
+          "gain": "Delegates some infrastructure operations",
+          "cost": "Requires managing model availability, quotas, contracts, and dependencies"
+        },
+        {
+          "option": "Operate a self-hosted runtime",
+          "gain": "Provides detailed control over deployment and configuration",
+          "cost": "Adds responsibility for capacity, updates, security, and incidents"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Google Cloud — Choosing a self-hosted or managed solution",
+          "url": "https://cloud.google.com/blog/products/application-development/choosing-a-self-hosted-or-managed-solution-for-ai-app-development"
+        }
+      ]
+    },
+    {
+      "id": "etl-elt-data-boundaries",
+      "category": "ETL & data platforms",
+      "title": "Choose ETL or ELT by transformation location and raw-data boundaries",
+      "keyPoint": "ETL transforms before loading into the destination; ELT loads there before transforming. Decide where sensitive data may be stored as well as how easily it can be reprocessed.",
+      "body": "ETL means Extract, Transform, Load; ELT changes that order. Keeping data close to its raw form can make ELT easier to reprocess after a transformation changes. The raw area still needs access control, retention limits, and deletion propagation. ETL also needs protection for sensitive data in temporary storage and logs. A DWH (data warehouse) can receive only approved columns, then perform analytical transformations inside. The acronym alone determines neither safety nor speed.",
+      "inDesign": "Map sources, temporary storage, raw storage, and analytical tables. Specify allowed columns, readers, and retention at each stage, then choose a layout that supports reprocessing and data protection.",
+      "tradeOffs": [
+        {
+          "option": "Transform to required columns before loading",
+          "gain": "Limits information and structure entering the destination",
+          "cost": "Requires planning for re-extraction and transformation infrastructure"
+        },
+        {
+          "option": "Load approved raw data, then transform",
+          "gain": "Makes alternative transformations easier to rebuild",
+          "cost": "Requires managing raw-data access, retention, deletion, and storage cost"
+        }
+      ],
+      "sources": [
+        {
+          "title": "AWS — ETL vs ELT",
+          "url": "https://aws.amazon.com/compare/the-difference-between-etl-and-elt/"
+        },
+        {
+          "title": "Google Cloud — Secure data environments",
+          "url": "https://docs.cloud.google.com/architecture/secure-data-environments"
+        }
+      ]
+    },
+    {
+      "id": "etl-incremental-cursor",
+      "category": "ETL & data platforms",
+      "title": "Incremental cursors must distinguish update time from commit order",
+      "keyPoint": "Reading only rows newer than the previous maximum update time can miss tied timestamps and late commits. Design ordering, deduplication, and reconciliation together.",
+      "body": "Incremental extraction reads changes since a prior run. A cursor combining update time with a unique ID can paginate tied timestamps within a fixed visible dataset. If update time is assigned before commit, a row that becomes visible later may fall behind that cursor. An overlap period plus primary-key and version handling can absorb bounded delays and duplicate reads, but does not cover arbitrary lateness. Timestamp polling alone also misses hard deletes, requiring deletion records, CDC, or periodic reconciliation.",
+      "inDesign": "Check who assigns timestamps and when, commit delays, delete representation, and cursor persistence. Advance the cursor after output is durably applied, and test stops and replay.",
+      "tradeOffs": [
+        {
+          "option": "Reread overlapping update-time ranges",
+          "gain": "Can absorb bounded delay without log capture",
+          "cost": "Requires duplicate handling, a lateness bound, and a separate delete path"
+        },
+        {
+          "option": "Consume committed change logs",
+          "gain": "Tracks updates and deletes by log position",
+          "cost": "Requires operating retention, permissions, and initial snapshot handoff"
+        }
+      ],
+      "sources": [
+        {
+          "title": "PostgreSQL 18 — Transaction isolation",
+          "url": "https://www.postgresql.org/docs/18/transaction-iso.html"
+        }
+      ]
+    },
+    {
+      "id": "etl-cdc-snapshot-handoff",
+      "category": "ETL & data platforms",
+      "title": "Start CDC with a connected snapshot and change-log position",
+      "keyPoint": "Reading changes only from the end of an initial copy can lose updates made during copying. Connect a consistent snapshot to its log position, including updates, deletes, and recovery.",
+      "body": "CDC (Change Data Capture) extracts data changes. Log-based CDC must connect the initial snapshot and change-log boundary using the connector’s documented procedure. Apply changes by primary key, including delete events, and coordinate sink writes with the checkpoint because recovery can replay events. Once required logs are unavailable, recovery may require a new snapshot. With PostgreSQL replication slots, consumer lag can also retain WAL and pressure disk capacity.",
+      "inDesign": "Test updates and deletes during copying, connector stops, and replay. Monitor lag and retained-log capacity, and define resnapshot and publication controls when required history is lost.",
+      "tradeOffs": [
+        {
+          "option": "Use log-based CDC",
+          "gain": "Continuously captures row updates and deletes",
+          "cost": "Requires managing snapshots, replay, log retention, and source capacity"
+        },
+        {
+          "option": "Periodically replace with a consistent full copy",
+          "gain": "Simplifies full-state reconciliation without a log capture system",
+          "cost": "Costs source capacity and cannot preserve every change between copies"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Debezium — PostgreSQL connector",
+          "url": "https://debezium.io/documentation/reference/stable/connectors/postgresql.html"
+        }
+      ]
+    },
+    {
+      "id": "etl-idempotent-publication",
+      "category": "ETL & data platforms",
+      "title": "Repeatable ETL fixes the input version and publication unit",
+      "keyPoint": "Rerunning a data interval should avoid duplicate appends and partial publication. Fix input and transformation versions, then publish validated output using the destination’s commit mechanism.",
+      "body": "Idempotency means repeating an operation leaves the intended final result unchanged. A fixed interval alone is insufficient when source data or code changes, so record input and transformation versions. Write to staging, validate counts and keys, and publish through a database transaction, supported table-format commit, or manifest switch. Moving files one by one does not provide atomic publication for the whole dataset. Also guard against an older overlapping run overwriting a newer result.",
+      "inDesign": "Record the interval, input version, and transformation version. Stop execution after writes and around publication; verify replay, reader visibility, and protection from stale runs.",
+      "tradeOffs": [
+        {
+          "option": "Replace a validated interval",
+          "gain": "Rebuilds aggregates without duplicate appends",
+          "cost": "Requires atomic publication and concurrency control"
+        },
+        {
+          "option": "Merge rows by key and version",
+          "gain": "Limits writes to changed rows",
+          "cost": "Requires handling source duplicates, deletes, and stale versions"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Apache Airflow — Best practices",
+          "url": "https://airflow.apache.org/docs/apache-airflow/stable/best-practices.html"
+        }
+      ]
+    },
+    {
+      "id": "etl-event-time-late-data",
+      "category": "ETL & data platforms",
+      "title": "Aggregate late data using event time and arrival time separately",
+      "keyPoint": "Revenue by arrival day differs from revenue by event day. Event-time aggregation needs a policy for late arrivals and corrections to published values.",
+      "body": "Event time describes when something happened; processing time describes when the platform processes it. Offline devices and retries reorder arrivals. A stream watermark represents progress in event time, and its construction depends on the source. A heuristic watermark does not guarantee that older events will never arrive. Define allowed lateness and emission timing, and agree whether corrections replace prior results or arrive as deltas. Provide a path such as quarantine or recomputation for arrivals beyond that allowance.",
+      "inDesign": "Specify the business time axis, clock reliability, delay distribution, and correction deadline. Distinguish provisional results from corrections, and use event identity to prevent double counting on replay.",
+      "tradeOffs": [
+        {
+          "option": "Emit provisional results quickly",
+          "gain": "Gives users an early view",
+          "cost": "Requires corrections and provisional labeling"
+        },
+        {
+          "option": "Wait longer before publishing",
+          "gain": "Includes more late arrivals before publication",
+          "cost": "Delays availability and still needs handling beyond the waiting period"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Apache Beam — Watermarks and late data",
+          "url": "https://beam.apache.org/documentation/programming-guide/#watermarks-and-late-data"
+        }
+      ]
+    },
+    {
+      "id": "etl-schema-contracts",
+      "category": "ETL & data platforms",
+      "title": "Schema changes need contracts for meaning as well as types",
+      "keyPoint": "Analytics can break without a column-name or type change: units and NULL semantics can change. Validate structural contracts and business meaning separately.",
+      "body": "A data contract shares column structure, meaning, and ownership between producers and consumers. Matching a schema does not guarantee correct meaning. Define units, time zones, row grain, and whether NULL means unknown or not applicable. Even additive changes can affect SELECT * and positional readers. Inspect downstream consumers and provide compatible columns or versions during migration. If invalid records are quarantined while processing continues, expose the missing scope and assign recovery ownership.",
+      "inDesign": "Verify compatibility against actual consumer queries. Check required columns and types alongside units and value distributions, then define publication blocking and recovery scope.",
+      "tradeOffs": [
+        {
+          "option": "Block publication for contract violations",
+          "gain": "Prevents invalid values from entering normal use",
+          "cost": "Delays affected data availability"
+        },
+        {
+          "option": "Quarantine invalid records and publish valid data",
+          "gain": "Keeps unaffected data available",
+          "cost": "Requires visible incompleteness, quarantine monitoring, and recovery"
+        }
+      ],
+      "sources": [
+        {
+          "title": "dbt — Model contracts",
+          "url": "https://docs.getdbt.com/docs/mesh/govern/model-contracts"
+        }
+      ]
+    },
+    {
+      "id": "etl-grain-reconciliation",
+      "category": "ETL & data platforms",
+      "title": "Validate ETL grain and totals as well as row counts",
+      "keyPoint": "Matching row counts can hide substitutions or offsetting duplicates and losses. Define row grain and check keys, required values, references, and business totals over the same scope.",
+      "body": "Grain defines what one row represents. Joining an order to its line items repeats the order amount for every item. The extra rows can be correct while summing that amount inflates revenue. Data-quality checks cover uniqueness, NULLs, allowed values, and referential integrity. Reconciliation compares the same period, currency, status, and cutoff. Define permitted differences for refunds or late data. Tests detect violations of specified rules; passing them does not prove all business logic correct.",
+      "inDesign": "Document input and output grain and keys, and check join multiplicity. Use small known datasets and scoped totals, including cases where row counts match but values are wrong.",
+      "tradeOffs": [
+        {
+          "option": "Reconcile the full scope every run",
+          "gain": "Detects inconsistencies across a broad scope",
+          "cost": "Increases reads and completion time"
+        },
+        {
+          "option": "Reconcile changed intervals each run and the whole dataset periodically",
+          "gain": "Reduces routine validation load",
+          "cost": "Can delay detection of problems outside changed intervals"
+        }
+      ],
+      "sources": [
+        {
+          "title": "dbt — Data tests",
+          "url": "https://docs.getdbt.com/docs/build/data-tests"
+        }
+      ]
+    },
+    {
+      "id": "etl-backfill-isolation",
+      "category": "ETL & data platforms",
+      "title": "Backfills need publication conflict control as well as capacity limits",
+      "keyPoint": "Throttling historical recomputation is only part of backfill safety. Preserve capacity for live updates and prevent older input from overwriting newer published output.",
+      "body": "A backfill recomputes historical intervals to repair gaps or apply changed logic. Competing for the same execution slots can delay fresh data, and writing the same output can roll results backward. Fix intervals, input versions, and transformation versions, then start with limited concurrency. Bound source and sink load too. Build output separately and validate it; serialize publication for an interval or reject stale writes using version checks. Confirm required source data still exists before starting.",
+      "inDesign": "Use live-data freshness as a stop condition, and bound backfill slots and traffic. Define which result wins when live and historical jobs overlap, and how stale publication is rejected.",
+      "tradeOffs": [
+        {
+          "option": "Separate execution slots from live jobs",
+          "gain": "Reduces scheduling interference with live work",
+          "cost": "Still requires controlling shared source and sink load"
+        },
+        {
+          "option": "Serialize publication for the same interval",
+          "gain": "Makes the application order explicit",
+          "cost": "Adds waiting and still requires checking input-version freshness"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Apache Airflow — Backfill",
+          "url": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/backfill.html"
+        }
+      ]
+    },
+    {
+      "id": "etl-freshness-completeness",
+      "category": "ETL & data platforms",
+      "title": "Monitor ETL success, freshness, and completeness separately",
+      "keyPoint": "A successful job can process stale input. One recent row can also hide gaps, so monitor freshness and completeness of the expected scope.",
+      "body": "Freshness measures how far required data lags behind use time. Track source updates, ingestion, and publication separately. Data completeness asks whether expected intervals and sources are present. A maximum event timestamp alone cannot reveal internal gaps or a stopped source. Check a contiguous confirmed range, expected files, and source-level counts. Business calendars and source heartbeats help distinguish expected quiet periods from failures. A freshness SLO should cover data availability in the consumer-facing dashboard.",
+      "inDesign": "Define which scope must be usable in which interface by what time. Test source stoppage, valid empty input, and missing files, and ensure job success does not clear unresolved data alerts.",
+      "tradeOffs": [
+        {
+          "option": "Monitor the latest ingestion timestamp",
+          "gain": "Provides a lightweight signal of ingestion stoppage",
+          "cost": "Needs separate checks for partial gaps and event-to-use delay"
+        },
+        {
+          "option": "Monitor completed coverage by source and interval",
+          "gain": "Makes missing coverage and lag easier to identify",
+          "cost": "Requires expected-volume or completion-notification definitions and records"
+        }
+      ],
+      "sources": [
+        {
+          "title": "dbt — Freshness configuration",
+          "url": "https://docs.getdbt.com/reference/resource-configs/freshness"
+        }
+      ]
+    },
+    {
+      "id": "etl-partition-pruning",
+      "category": "ETL & data platforms",
+      "title": "Partitions help when queries actually prune the scanned range",
+      "keyPoint": "A date-partitioned table can still scan broadly if a query cannot identify the needed partitions. Align partitioning with common filters and verify actual scanned data.",
+      "body": "A partition divides a table by a value such as date. Partition pruning skips unnecessary partitions, with eligibility depending on the product and query. BigQuery supports predicates such as constant ranges on the partition column, and a dry run can estimate bytes processed. If storage uses ingestion day while queries use event day, late arrivals may reside in other partitions. Excessively small partitions add metadata. Measure selected columns and joins too; scanned-byte ratios do not directly determine runtime or billing ratios.",
+      "inDesign": "Check partition filters using representative aggregation queries. Test late-arrival and reprocessing ranges, then compare estimated bytes with execution statistics.",
+      "tradeOffs": [
+        {
+          "option": "Partition by day",
+          "gain": "Aligns date-range analytics and reprocessing units",
+          "cost": "Adds partitions and metadata for small datasets"
+        },
+        {
+          "option": "Use coarser time partitions",
+          "gain": "Reduces overhead from tiny partitions",
+          "cost": "May read more data for short-range queries"
+        }
+      ],
+      "sources": [
+        {
+          "title": "BigQuery — Query partitioned tables",
+          "url": "https://docs.cloud.google.com/bigquery/docs/querying-partitioned-tables"
+        }
+      ]
+    },
+    {
+      "id": "etl-business-data-interval",
+      "category": "ETL & data platforms",
+      "title": "Choose reprocessing intervals by business time, not execution day",
+      "keyPoint": "Computing “yesterday” from the execution clock changes the target on later reruns. Define start and end in the business time zone and pass that interval explicitly.",
+      "body": "A data interval is the start-to-end scope processed by a run. A half-open interval includes its start and excludes its end, avoiding duplicate boundary membership across adjacent intervals. Find the business-day start and next-day start in the relevant time zone, then convert both to UTC instants for querying. Days in regions with daylight saving time are not always 24 hours. Airflow distinguishes data intervals from execution time, and manual-run intervals depend on the trigger path and timetable. Verify supplied intervals and record input versions when late arrivals can change the source.",
+      "inDesign": "Specify business dates, cutoffs, and time zones as requirements. Test boundary records, later reruns, and daylight-saving transitions to verify the same intended interval is reread.",
+      "tradeOffs": [
+        {
+          "option": "Process business-day intervals",
+          "gain": "Matches business cutoffs and reporting definitions",
+          "cost": "Requires verifying time-zone and daylight-saving boundaries"
+        },
+        {
+          "option": "Process fixed UTC intervals, then derive business-day aggregates",
+          "gain": "Simplifies a common ingestion time axis",
+          "cost": "Business-day queries may span multiple UTC intervals"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Apache Airflow — Dag Runs",
+          "url": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dag-run.html"
+        },
+        {
+          "title": "Apache Airflow — Time zones",
+          "url": "https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/timezone.html"
+        }
+      ]
+    },
+    {
+      "id": "etl-historical-dimensions",
+      "category": "ETL & data platforms",
+      "title": "Decide whether historical revenue uses past or current attributes",
+      "keyPoint": "Joining historical orders to today’s customer master changes past breakdowns when attributes change. If reports need the historical attribute, keep history and select the version valid at the event time.",
+      "body": "SCD Type 2 preserves attribute history by adding a row when values change. Alongside the business key, store a version identifier and validity interval. Join historical orders using customer ID and the interval containing the order time. Overlapping intervals can create duplicate matches, so test overlaps and gaps. Distinguish business-effective time from ingestion observation time. Periodic snapshots do not capture every change between observations. Define how far back corrected history should trigger recomputation.",
+      "inDesign": "Clarify whether users need a historical breakdown or a restatement using today’s organization. Design the history source, timestamp meaning, overlap checks, and late-correction recomputation accordingly.",
+      "tradeOffs": [
+        {
+          "option": "Join to the current master",
+          "gain": "Makes it easy to restate all periods using current attributes",
+          "cost": "Cannot reproduce breakdowns by historical attributes"
+        },
+        {
+          "option": "Join to historical validity intervals",
+          "gain": "Builds historical breakdowns from available history",
+          "cost": "Requires history storage, interval validation, and late-correction recomputation"
+        }
+      ],
+      "sources": [
+        {
+          "title": "dbt — Snapshots",
+          "url": "https://docs.getdbt.com/docs/build/snapshots"
         }
       ]
     },

@@ -1,0 +1,4 @@
+interface:
+  display_name: "In-house Development Improvement"
+  short_description: "Improve team ownership, delivery, and operational readiness"
+  default_prompt: "Use $inhouse-development-improvement to trace how our team changes and operates this service, identify delivery bottlenecks, and prioritize improvements with verification criteria."

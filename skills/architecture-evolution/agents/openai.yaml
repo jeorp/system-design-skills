@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Evolution"
+  short_description: "Plan staged changes toward a practical target architecture"
+  default_prompt: "Use $architecture-evolution to plan how this existing system can evolve through bounded changes while development continues, including transition states and validation gates."

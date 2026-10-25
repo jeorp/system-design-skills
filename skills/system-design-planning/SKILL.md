@@ -31,7 +31,7 @@ python3 "<skill-dir>/scripts/tips.py" search webhook
 python3 "<skill-dir>/scripts/tips.py" show webhook-verification idempotency-keys dual-write-outbox
 ```
 
-Turn relevant knowledge into a decision: requirement or invariant → possible failure → design mechanism → trade-off → verification. Do not load all 134 Tips or treat every title as a requirement. Cover material questions outside the catalog too.
+Turn relevant knowledge into a decision: requirement or invariant → possible failure → design mechanism → trade-off → verification. Do not load the entire Tip catalog or treat every title as a requirement. Cover material questions outside the catalog too.
 
 Read the [design questions](references/design-questions.md) for the paths being designed. Use only applicable sections; a small synchronous feature need not acquire queues, multiple regions, or Kubernetes.
 

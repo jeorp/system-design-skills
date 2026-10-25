@@ -17,6 +17,9 @@ TARGETS = tuple(
         "safe-migration-planning",
         "capacity-planning",
         "incident-learning",
+        "inhouse-development-improvement",
+        "architecture-evolution",
+        "fde-solution-delivery",
     )
 )
 FILES = ("scripts/tips.py", "references/tips.json", "references/tip-index.md")
