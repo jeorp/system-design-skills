@@ -1,69 +1,69 @@
-# 優先順位の判断基準
+# Prioritization Criteria
 
-これは本スキルの意思決定用ルール。CVSSなどの標準スコアや発生確率の実測値ではない。ユーザーの明示した基準・期限・SLOがあれば優先し、変更した基準を示す。総合点や「安全性85点」のような疑似的な精密さは作らない。
+These are decision rules for this skill, not a standard score such as CVSS or measured failure probabilities. Prefer the user's explicit criteria, deadlines, and SLOs, and explain any changes to the criteria. Do not invent aggregate scores or false precision such as an "85% safety rating."
 
-## 1. 被害と発生条件を分ける
+## 1. Separate harm from triggering conditions
 
-各課題について次を確認する。仮定であれば、その仮定を変えると優先度がどう変わるかも示す。
+Assess the following for each finding. When an assessment depends on assumptions, explain how changing them would affect the priority.
 
-| 判断軸 | 確認すること |
+| Dimension | What to establish |
 | --- | --- |
-| 業務影響 | データ漏えい・消失・不正操作・金銭的不整合・主要操作の停止・遅延のどれか。回復可能か。利用者との約束に反するか |
-| 影響範囲 | 1操作、1利用者、1テナント、全体、外部の取引先。範囲はコード上の可能性と実際の被害を区別する |
-| 発生条件と露出 | 通常の再送・同時実行で起きるか、認証が必要か、外部から到達できるか、特殊な権限や将来の規模を前提にするか |
-| 時間的な切迫度 | 現在進行中か、次の公開・移行で条件が成立するか、枯渇時期を測れているか。架空の締め切りを置かない |
-| 既存の防御と回復 | 別層の認可、DB制約、流量制限、監視、復元などが被害をどこまで抑えるか。設定だけか、効果まで検証したか |
+| Business impact | Data exposure or loss, unauthorized actions, financial inconsistency, or disruption or delay of key actions. Is recovery possible? Does it break a commitment to users? |
+| Scope | One operation, user, tenant, the whole system, or external partners. Distinguish potential scope in code from observed harm. |
+| Triggers and exposure | Can ordinary retries or concurrency trigger it? Does it require authentication? Is it externally reachable? Does it depend on special privileges or future scale? |
+| Urgency | Is harm ongoing? Will a planned launch or migration establish the conditions? Has time to exhaustion been measured? Do not invent deadlines. |
+| Existing defenses and recovery | How much do authorization in another layer, database constraints, rate limits, monitoring, and restoration reduce harm? Is only configuration known, or has effectiveness been verified? |
 
-被害が大きいという理由だけで「発生しやすい」と書かない。頻度のデータがなければ、確率を捏造せず具体的な発生条件で説明する。
+Severe consequences do not establish a high likelihood. If frequency data is unavailable, explain concrete triggers rather than inventing probabilities.
 
-## 2. 対応優先度 P0〜P3
+## 2. Response priority: P0–P3
 
-| 優先度 | 判断条件 | 推奨する扱い |
+| Priority | Criteria | Recommended response |
 | --- | --- | --- |
-| P0：即時判断 | 重大な被害が進行している証拠、または検証済みの露出により重大な被害が切迫し、十分な防御がない | 診断結果の冒頭で伝える。封じ込め・公開停止等の具体案と業務影響を示し、担当者の判断を求める。診断の権限で本番操作しない |
-| P1：優先対応 | 現在または目前の利用条件で重大な漏えい・データ破損・不整合・主要機能停止が成立し、十分な防御がない。被害発生の観測までは不要 | 原則として次の関連リリース・対象機能の公開前に対処。暫定策と根本策の順序を提案する。具体的な期限は予定に基づく |
-| P2：計画対応 | 影響が限定される、一定の防御がある、または特定の負荷・変更で初めて問題になる。改善価値は対象の要件から説明できる | 通常の開発計画に組み込み、実施時期を決めるための計測・依存関係を示す |
-| P3：監視・見直し | 現在の要件を満たし、将来の成長や運用負担に備える改善余地がある | 現状維持を選択肢にし、見直す条件・計測項目を示す。好みだけの指摘は載せない |
+| P0: Immediate decision | Evidence of ongoing severe harm, or verified exposure that makes severe harm imminent without adequate defenses. | Lead with it. Propose containment or delaying a launch and explain business impact. Seek the responsible person's decision; diagnosis alone does not authorize production operations. |
+| P1: High priority | Current or imminent usage conditions allow serious exposure, corruption, inconsistency, or disruption of key features without adequate defenses. Observed harm is not required. | Normally address before the next relevant release or feature launch. Propose the order of temporary and lasting fixes. Base specific deadlines on actual plans. |
+| P2: Planned improvement | Impact is limited, some defenses exist, or the issue requires particular load or changes. The target's requirements justify improvement. | Include in normal development planning. Identify measurements and dependencies needed to schedule it. |
+| P3: Monitor and revisit | Current requirements are met, but there is room to prepare for future growth or operational burden. | Offer keeping the current design, with review triggers and metrics. Exclude findings based only on preference. |
 
-各課題に「P1。再送時に二重の金銭処理が成立し、業務制約による防御がないため」のような理由を添える。対応日数を優先度から自動換算しない。
+Give a reason for each priority, such as "P1: a retry can duplicate a financial operation, and no business constraint prevents it." Do not automatically translate priorities into a fixed number of days.
 
-## 3. 証拠の状態と確かさ
+## 3. Evidence status and confidence
 
-優先度とは別に、何がどこまで分かったかを示す。
+Show what is known separately from priority.
 
-| 状態 | 定義と書き方 |
+| Status | Definition and wording |
 | --- | --- |
-| 確認済み | 経路・設定・制約または安全な再現で欠陥が成立する。「欠陥を確認」と「本番被害を確認」は別に記載する |
-| 条件付き | 具体的な欠陥の経路はあるが、公開設定・利用条件等の前提が未確定。「Xなら発生。Xの確認が必要」と記載する |
-| 未確認 | 判断に必要な資料・権限・計測が足りず、欠陥の有無を判断できない。確認できた対策を否定しない |
+| Confirmed | A traced path, configuration, constraint, or safe reproduction establishes the defect. Report a confirmed defect separately from confirmed production harm. |
+| Conditional | A concrete defect path exists, but a prerequisite such as exposure or usage is unknown. State "Occurs if X; X needs verification." |
+| Unverified | Missing documents, access, or measurements prevent a conclusion about whether a defect exists. Do not dismiss protections that have been established. |
 
-証拠の確かさは、高（経路と対策まで追えた／再現した）、中（経路の一部や運用条件が不明）、低（断片的な資料や推測）で示し、理由を添える。テストを実行しなくても経路と仕様から高い確かさを得る場合はある。テストが存在するだけでは検証済みにしない。
+Express confidence as high (the path and mitigations were traced or reproduced), medium (part of the path or operational conditions remains unknown), or low (fragmentary evidence or inference), with a reason. Code paths and specifications can establish high confidence without executing tests. The existence of a test alone is not verification.
 
-条件付きの課題は「暫定P1・公開条件の確認待ち」のように前提を付ける。純粋な未確認事項には確定した欠陥としてPを付けず、「条件成立時の想定影響」と調査優先度を付ける。
+Qualify conditional findings, for example, "Provisional P1, pending exposure verification." For purely unverified items, do not assign a P rating as if a defect were established. State the potential impact if the conditions hold and assign investigation priority.
 
-### 未確認事項の調査優先度
+### Investigation priority for unknowns
 
-- **先行確認**：重大な被害の可能性が具体的にあり、判断や直近の公開を左右する。必要な証拠、確認先、安全な確認方法、成立／不成立で次に何をするかを示す。
-- **計画確認**：差し迫った判断を妨げない。計測・確認を通常の計画に置く。
+- **Verify first:** A concrete possibility of severe harm could change a decision or imminent launch. Specify the evidence needed, where to obtain it, a safe verification method, and next steps for either outcome.
+- **Planned verification:** The unknown does not block an imminent decision. Schedule measurement or verification in normal planning.
 
-先行確認は確定課題とは区別して最上部近くに置き、必要なら対応順の先頭にする。バックアップの設定をリポジトリで見つけられないだけで「バックアップなし・P1」としない。一方、復旧できるか不明のままデータ移行が目前なら先行確認として扱う。
+Place "verify first" items near the top, separately from confirmed findings, and first in the action order when appropriate. Not finding backup configuration in a repository does not establish "no backups, P1." However, uncertain restorability before an imminent data migration warrants verification first.
 
-## 4. 対応順と工数
+## 4. Action order and effort
 
-対応順は次の順で判断し、重要な入れ替えの理由を示す。
+Order work using these considerations and explain material departures:
 
-1. P0や進行中の被害に対する判断を先に置く。
-2. 直近の判断を左右する先行確認と、P1の対処を具体的な期限・依存関係で並べる。
-3. 同じ優先度では、被害・露出・切迫度と既存対策を比較する。
-4. そのうえで、少ない工数で被害を減らせる案、他の対策の前提となる案を先にする。
+1. Put decisions about P0 findings or ongoing harm first.
+2. Order verification that affects imminent decisions and P1 responses by actual deadlines and dependencies.
+3. Within a priority, compare harm, exposure, urgency, and existing defenses.
+4. Then favor options that reduce harm with less effort or enable other mitigations.
 
-安いP2の作業を並行できる場合も、P1より重大だとは表現しない。同順位が妥当なら無理に差を付けない。
+A cheap P2 task may proceed in parallel; that does not make it more severe than P1. Allow ties when warranted.
 
-工数は人日等の幅で見積もれる根拠がある場合だけ提示する。情報が足りなければ「未見積もり・影響箇所の確認後に算定」とする。概算には実装だけでなく、検証、データ移行、レビュー、運用作業、継続費を含め、前提を書く。見積もりのために不要な大規模調査はしない。
+Provide effort ranges, such as person-days, only when there is a basis for estimation. Otherwise state "Not estimated; requires mapping the affected areas." Include validation, migration, review, operational work, and ongoing costs alongside implementation, and state assumptions. Do not launch unnecessary large investigations just to produce an estimate.
 
-## 判断例
+## Examples
 
-- 公開中の課金処理で、再送のたびに新しい外部決済を作る経路と防御の欠如を確認：P1・確認済み。実際の二重請求が進行中なら、その証拠に応じP0を検討。
-- 設定資料がなく復元可能性が不明：未確認。重要データの移行が目前なら先行確認。資料がないことを復元不能の証明にしない。
-- 索引が必要か不明なクエリ：まずデータ量・実行計画・遅延を確認。測定前に性能問題や改善率を断定しない。
-- 小規模な単一リージョン構成が合意した復旧要件を満たす：多地域化の欠如を課題にしない。
+- A live payment path creates a new external charge on every retry, with no protection: P1, confirmed. If duplicate charges are observed to be ongoing, consider P0 based on that evidence.
+- Restoration is unknown because configuration documents are unavailable: unverified. Verify first if an important data migration is imminent. Missing documentation does not prove restoration is impossible.
+- A query might need an index: inspect data volume, execution plans, and latency first. Do not assert a performance defect or improvement percentage before measurement.
+- A small system in one region meets agreed recovery requirements: do not list the absence of multiple regions as a finding.

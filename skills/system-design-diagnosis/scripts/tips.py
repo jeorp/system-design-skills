@@ -64,22 +64,22 @@ def refresh(source):
             "source_sha256": hashlib.sha256(source_bytes).hexdigest(),
             "imported_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "tip_count": len(tips),
-            "note": "教材からの抽出。取り込み日は技術内容の再検証日ではない。",
+            "note": "Extracted from learning material. The import date is not a technical revalidation date.",
         },
         "tips": [{field: tip[field] for field in FIELDS} for tip in tips],
     }
     metadata = snapshot["provenance"]
     lines = [
-        "# Tip索引", "",
-        f"元教材：`{metadata['source_project']}` / `{table_text(source.name)}`。"
-        f"releaseId：`{table_text(str(metadata['release_id']))}`。{len(tips)}件。",
-        f"取り込み時刻（UTC）：{metadata['imported_at_utc']}。", "",
-        "原本のSHA-256：`" + metadata["source_sha256"] + "`。", "",
-        "この索引は選択用。見出しを普遍的な要件として使わず、必要なIDの本文・条件・比較を読む。",
-        "取り込み日は再レビュー日ではなく、出典の現在性や対象製品のバージョンを保証しない。",
-        "同梱snapshotだけで利用でき、元リポジトリへの接続は不要。", "",
+        "# Tip Index", "",
+        f"Source: `{metadata['source_project']}` / `{table_text(source.name)}`. "
+        f"Release: `{table_text(str(metadata['release_id']))}`. {len(tips)} Tips.",
+        f"Imported at (UTC): {metadata['imported_at_utc']}.", "",
+        "Source SHA-256: `" + metadata["source_sha256"] + "`.", "",
+        "Use this index to select Tips, then read their explanations, conditions, and trade-offs.",
+        "Titles are not universal requirements. Importing does not revalidate claims or guarantee current sources or product versions.",
+        "The bundled snapshot is self-contained; access to the source repository is not required.", "",
         "```sh",
-        'python3 "<skill-dir>/scripts/tips.py" search 再試行',
+        'python3 "<skill-dir>/scripts/tips.py" search retry',
         'python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification',
         "```", "",
     ]
@@ -87,7 +87,7 @@ def refresh(source):
     for tip in tips:
         groups.setdefault(tip["category"], []).append(tip)
     for category, entries in groups.items():
-        lines.extend(["## " + table_text(category), "", "| ID | 話題 |", "| --- | --- |"])
+        lines.extend(["## " + table_text(category), "", "| ID | Topic |", "| --- | --- |"])
         lines.extend(f"| `{tip['id']}` | {table_text(tip['title'])} |" for tip in entries)
         lines.append("")
     # Fully parse and validate the input before replacing either generated file.

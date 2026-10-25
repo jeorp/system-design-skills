@@ -1,58 +1,58 @@
-# ユーザーが選べる診断結果
+# A Diagnosis the User Can Act On
 
-出力は通常チャットで完結させる。文書やファイルを求められたときだけ指定形式へ保存する。以下は内容のガイドであり、見出しや件数を機械的に固定しない。狭い診断では短くまとめる。課題がない場合は作り出さず、確認範囲と維持する設計、残る不明点を示す。
+Normally deliver the result in chat. Save a document or file only when requested, using the specified format. The following is a content guide, not a fixed set of headings or finding counts. Keep narrow assessments short. If no issues are found, state coverage, designs worth keeping, and remaining unknowns without inventing findings.
 
-## 1. 推奨する判断を先に伝える
+## 1. Lead with the recommended decision
 
-冒頭で次の判断を短く述べる。
+Briefly explain:
 
-- 何を先に扱うと、どの利用者影響を減らせるか。
-- 実装より先に確認すべき事項はあるか。
-- 現状維持が妥当な領域と、その判断が成立する条件。
+- What to address first and which user impact that reduces.
+- Whether anything needs verification before implementation.
+- Where keeping the current design is reasonable, and under which conditions.
 
-P0があれば最初に示す。全体の安全性や本番公開の可否を、未確認事項を隠した合格／不合格で断定しない。
+Present any P0 finding first. Do not give a blanket safety or production-readiness verdict that hides unknowns.
 
-続けて診断対象・版（分かればコミット）・確認日・範囲を短く示す。重要な前提、実行した検証と結果、本番や外部設定など未確認の範囲を明示する。リポジトリを調べた診断を、本番を検査した結果として扱わない。
+Then state the target, version or commit if known, review date, and scope. Identify material assumptions, checks actually run and their results, and unverified areas such as production or external settings. A repository assessment is not an inspection of production.
 
-## 2. 優先順位とその理由を一覧にする
+## 2. List priorities and reasons
 
-対応順で並べ、安定したIDで詳細・選択肢と対応付ける。件数が多い場合は判断に必要な上位を先に示し、残りを省略したことと参照先を示す。似た症状を水増ししない。
+Order findings by action and use stable IDs to connect details and options. If there are many, show the decision-critical findings first and explain where the rest can be found. Do not inflate the count with similar symptoms.
 
-| 順 | ID・課題 | 優先度／証拠 | 業務影響と優先する理由 | 対応負担 | 推奨する次の判断 |
+| Order | ID and finding | Priority / evidence | Business impact and reason for priority | Effort | Recommended decision |
 | --- | --- | --- | --- | --- | --- |
-| 1 | F-01 課題の要約 | P1・確認済み／確かさ高 | 発生条件、利用者への影響、なぜ今か | 前提付きの概算、または未見積もり | 暫定対策の後に根本対策 |
+| 1 | F-01: Finding summary | P1; confirmed; high confidence | Trigger, user impact, and why now | Estimate with assumptions, or not estimated | Temporary mitigation followed by a lasting fix |
 
-これは構成例で、架空のF-01を実際の指摘として載せない。優先度の基準を表の近くに要約し、「影響・露出・緊急性で判断し、証拠と工数は別に示した」ことが分かるようにする。重要な未確認事項は別の小表で、調査優先度・想定影響・必要な証拠を示す。
+This row illustrates structure; do not report the fictional F-01 as an actual finding. Briefly summarize the criteria nearby: impact, exposure, and urgency determine priority, while confidence and effort are shown separately. Put significant unknowns in a separate small table with investigation priority, potential impact, and required evidence.
 
-## 3. 上位課題を判断できる詳細にする
+## 3. Give enough detail to decide on leading findings
 
-各課題の説明には以下を含める。小さな課題はまとめてもよいが、理由や選択肢を省かない。
+For each finding, include the following. Small findings may be grouped, but retain reasons and options.
 
-- **観測した事実と根拠**：対象のファイル・確認した行へのリンク、設定、実行した検証の結果。別層の防御も記す。参照行は実際に読んだ版で確認する。
-- **発生条件と業務影響**：入口から副作用までの因果関係。実際の事故を観測したか、可能性を示したかを区別する。
-- **優先度の理由と確かさ**：どの基準を満たし、何が分かれば評価が変わるか。仮定の計算は単位と前提を付ける。
-- **関連する知識**：Tip IDと、対象技術の主張を支える一次資料。一次資料を開いていなければ、確認済みと書かない。
-- **選択肢と推奨**：下の形式で実行可能な案を比較し、このプロダクトに合う理由を示す。
-- **完了条件**：どの再送・競合・故障・移行などを確認し、何を観測できればリスクが下がったと判断できるか。設定追加やテスト1件の存在だけを完了にしない。
+- **Observations and evidence:** Links to files and lines actually inspected, settings, and results of checks actually run. Note defenses in other layers. Verify line references against the version read.
+- **Trigger and business impact:** The causal path from entry point to side effect. Distinguish an observed incident from a demonstrated possibility.
+- **Priority rationale and confidence:** Which criteria apply and what new information would change the assessment. Label hypothetical calculations with units and assumptions.
+- **Relevant knowledge:** Tip IDs and primary sources supporting claims about the target technology. Do not claim to have verified primary documentation that you have not opened.
+- **Options and recommendation:** Compare feasible responses using the structure below and explain their fit for this product.
+- **Completion criteria:** Which retries, races, failures, migrations, or other scenarios need verification, and which observations would establish reduced risk. Adding a setting or having one test is not enough by itself.
 
-### 選択肢の比較
+### Comparing options
 
-上位の意思決定について、実際に選べる案を必要なだけ示す。単純な課題に架空の対案を作らない。複数課題を一括対応する案では対象IDを列挙する。
+For major decisions, present as many feasible options as needed. Do not invent alternatives for a simple issue. List all covered finding IDs when an option addresses several findings.
 
-| 案 | 得られる効果 | 残るリスク・制約 | 工数・継続費 | 変更時の影響・戻し方 |
+| Option | Benefit | Remaining risks and limits | Effort and ongoing cost | Change impact and recovery |
 | --- | --- | --- | --- | --- |
-| A 暫定対策 | どの発生条件や被害を抑えるか | 防げないケース、期限 | 根拠のある概算／未見積もり | 利用制限、切替、復帰方法 |
-| B 根本対策 | 保護する業務ルールと範囲 | 保証範囲外、運用上の負担 | 同上 | 互換性、移行の要否、戻せる境界 |
-| C 見送り／追加調査 | 今の変更を避ける利点／調査で分かること | 受容するリスク／未確定の判断 | 同上 | 監視項目、再判断する時点・条件 |
+| A: Temporary mitigation | Triggers or harm reduced | Unprotected cases and expiry | Supported estimate, or not estimated | Usage restrictions, switching, and restoration |
+| B: Lasting fix | Invariants and scope protected | Guarantee boundaries and operational burden | As above | Compatibility, migration needs, and rollback limits |
+| C: Defer or investigate | Benefit of avoiding change now, or what investigation establishes | Accepted risks or unresolved decisions | As above | Monitoring and when or under what conditions to revisit |
 
-すべての行を毎回使う必要はない。暫定対策と根本対策を順に行う案も可能。見送りが要件を満たさない場合はその旨を明示する。推奨案には、他案より適合する理由と採用条件を添える。不可逆なデータ変更は、単に「ロールバック可能」と書かない。
+Not every row is needed every time. A temporary mitigation followed by a lasting fix is also an option. If deferral fails requirements, state that explicitly. Explain why the recommendation fits better than alternatives and the conditions for adopting it. Do not describe irreversible data changes as simply "reversible."
 
-## 4. 意思決定を具体的に求める
+## 4. Ask for a concrete decision
 
-診断結果・比較・推奨を提示してから質問する。結論を出さずに「どうしますか？」と丸投げしない。質問は意思決定に必要なものに絞る。
+Present the diagnosis, comparison, and recommendation before asking. Do not hand the problem back with "What do you want to do?" without reaching a conclusion. Ask only questions necessary for the decision.
 
-例えば「F-01はAで当面の利用を制限し、Bの設計に進むことを推奨します。A→B、Bに直接着手、Cの追加調査のどれにしますか。対象や条件の変更も指定できます」のように、対象ID・案・次の行動を結び付ける。診断中の不足情報の質問とは分ける。
+For example: "For F-01, I recommend restricting usage with A, then designing B. Would you choose A followed by B, start B directly, or investigate with C? You can also adjust the scope or conditions." Connect finding IDs, options, and next actions. Keep this separate from requests for missing information during the assessment.
 
-利用可能なら選択式の質問ツールを使ってもよい。ツールがない場合は通常の質問で終える。例として「F-01=A→B、F-02=追加調査、F-03=次回まで見送り」のように回答できる形にする。質問ツールを使っても、診断結果と推奨はユーザーが読める最終回答に残す。
+Use a multiple-choice question tool if available and appropriate, or end with a normal question. Make compact answers possible, for example, "F-01=A then B; F-02=investigate; F-03=defer until the next review." Even when using a question tool, keep the diagnosis and recommendation in the final answer the user can read.
 
-回答待ちの時点では意思決定は未了と扱う。未回答を対策への同意、残存リスクの受容、または実装依頼とみなさない。既にユーザーが案を選んでいるなら聞き直さず、対象ID・選択案・残存リスク・担当や期限（指定があれば）・次の行動を確認する。見送りは見直す条件まで合意する。担当者・期限・選択を捏造しない。
+Treat a pending response as an unresolved decision. Silence is not consent to a mitigation, acceptance of residual risk, or a request for implementation. If the user has already chosen, do not ask again. Confirm the finding IDs, selected options, remaining risks, owners and deadlines if specified, and next actions. For deferrals, agree on review triggers. Do not invent owners, deadlines, or choices.

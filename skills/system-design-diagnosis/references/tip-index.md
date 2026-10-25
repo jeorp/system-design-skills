@@ -1,219 +1,219 @@
-# Tip索引
+# Tip Index
 
-元教材：`system-design-skill-developer` / `catalog.json`。releaseId：`v2-practice`。134件。
-取り込み時刻（UTC）：2026-10-25T08:48:42+00:00。
+Source: `system-design-skill-developer` / `catalog.en.json`. Release: `v2-practice`. 134 Tips.
+Imported at (UTC): 2026-10-25T08:57:57+00:00.
 
-原本のSHA-256：`2e45ba8707b23589362812a4c0862647de0795242a155c920ec290cd825b7172`。
+Source SHA-256: `51e26c9f4336d14bc9041b733a998d065349c0b2b1595159efddfc4bd6ff4ea2`.
 
-この索引は選択用。見出しを普遍的な要件として使わず、必要なIDの本文・条件・比較を読む。
-取り込み日は再レビュー日ではなく、出典の現在性や対象製品のバージョンを保証しない。
-同梱snapshotだけで利用でき、元リポジトリへの接続は不要。
+Use this index to select Tips, then read their explanations, conditions, and trade-offs.
+Titles are not universal requirements. Importing does not revalidate claims or guarantee current sources or product versions.
+The bundled snapshot is self-contained; access to the source repository is not required.
 
 ```sh
-python3 "<skill-dir>/scripts/tips.py" search 再試行
+python3 "<skill-dir>/scripts/tips.py" search retry
 python3 "<skill-dir>/scripts/tips.py" show timeout-budget retry-amplification
 ```
 
-## CSの基礎
+## CS fundamentals
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `floating-point-money` | 金額を浮動小数点数で持つと、0.1 + 0.2 が 0.3 にならない |
-| `utf8-bytes` | UTF-8はコードポイントごとに1〜4バイト。見た目の1文字は複数になることもある |
-| `integer-id-overflow` | 符号付き32ビットの連番IDは、約21億の採番で上限に達する |
-| `n-plus-one` | 一覧の1件ごとに関連データを読むと、クエリが「1 + 件数」回になる（N+1問題） |
-| `index-sargable` | 列を加工する条件は、通常のB木で検索範囲を絞りにくい |
-| `isolation-levels` | 分離レベルの既定はDBで違う。PostgreSQLはRead Committed、MySQLはRepeatable Read |
-| `sql-injection` | SQLを文字列の連結で組み立てると、入力がSQLの命令として実行される（SQLインジェクション） |
-| `public-key-roles` | 公開鍵暗号では、暗号化は相手の公開鍵で、署名は自分の秘密鍵で行う |
-| `cache-hit-ratio` | キャッシュのヒット率を90%から99%に上げると、DBへの読み取りは10分の1になる |
-| `dns-ttl` | DNSの切り替えは、すぐには全員に届かない。前もってTTLを短くしておく |
-| `sql-null-logic` | SQLのNULLは「空」ではなく不明。比較すると行が消える |
-| `timestamps-business-dates` | 「発生した瞬間」と「業務上の日付」を同じ日時型にしない |
+| `floating-point-money` | Store money as floating point and 0.1 + 0.2 is not 0.3 |
+| `utf8-bytes` | UTF-8 uses 1–4 bytes per code point; one visible character may contain several |
+| `integer-id-overflow` | Signed 32-bit sequential IDs exhaust their range after about 2.1 billion allocations |
+| `n-plus-one` | Loading related data per row turns one list into 1 + N queries (the N+1 problem) |
+| `index-sargable` | Expressions on a column can prevent efficient range lookup in a plain B-tree |
+| `isolation-levels` | Default isolation levels differ: PostgreSQL uses Read Committed, MySQL uses Repeatable Read |
+| `sql-injection` | Build SQL by string concatenation and input runs as SQL (SQL injection) |
+| `public-key-roles` | In public-key cryptography, encrypt with the recipient's public key and sign with your own private key |
+| `cache-hit-ratio` | Raising a cache hit ratio from 90% to 99% cuts database reads to a tenth |
+| `dns-ttl` | A DNS change does not reach everyone at once, so lower the TTL ahead of time |
+| `sql-null-logic` | SQL NULL means unknown, and comparisons can silently exclude rows |
+| `timestamps-business-dates` | Separate an event instant from a business calendar date |
 
-## 性能・容量計画
+## Performance & capacity
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `latency-numbers` | メモリ・SSD・ネットワークの速度差は桁で覚える |
-| `littles-law` | 平均同時処理数 = 到着率 × 平均滞在時間（リトルの法則） |
-| `utilization-queueing` | 利用率90%は「まだ余裕」ではない。待ち時間は急に伸びる |
-| `tail-latency` | 平均に加えてp99も見る。全応答を待つファンアウトは遅い1台に影響される |
-| `zone-headroom` | 3AZで1AZ喪失に備えるなら、総容量の2/3を理論上限に、さらに余裕を持つ |
-| `load-test-realism` | 負荷試験はデータ量・キャッシュ・偏り・時間をそろえて解釈する |
-| `connection-pool-math` | DB接続の設定上限は「台数 × プロセス数 × プール上限」で見積もる |
-| `cross-az-transfer` | AZをまたぐ通信には料金がかかり、複製の数だけ増える |
+| `latency-numbers` | Memorize latency gaps by orders of magnitude |
+| `littles-law` | Mean concurrency = arrival rate × mean time in system (Little’s law) |
+| `utilization-queueing` | 90% utilization is not headroom; waiting time explodes |
+| `tail-latency` | Track p99 as well as the mean: fan-out that waits for every response inherits the slowest |
+| `zone-headroom` | For one-AZ loss across three AZs, two-thirds of total capacity is a theoretical ceiling; add headroom |
+| `load-test-realism` | Interpret load tests with representative data, caches, skew, and duration |
+| `connection-pool-math` | Estimate configured DB connection ceilings as instances × processes × pool limit |
+| `cross-az-transfer` | Traffic between AZs is billed, and replication multiplies it |
 
-## 信頼性・障害対策
+## Reliability
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `timeout-budget` | タイムアウトは下流ほど短く、残り時間を引き継ぐ |
-| `retry-amplification` | 再試行は各層で掛け算になり、障害を大きくする |
-| `load-shedding` | 過負荷では、全部を遅く処理するより一部を早く断る |
-| `cache-stampede` | 人気キーの期限切れは、DBへの一斉アクセスになる |
-| `availability-math` | 必須依存の可用性の積は、障害が独立というモデルで見積もる |
-| `blast-radius` | 障害の影響範囲（ブラスト半径）を、先に設計で小さくしておく |
-| `metastable-failure` | 負荷が下がっても戻らない障害がある（メタステーブル障害） |
-| `idempotency-keys` | 非冪等な書き込みの再試行には、冪等キーなどの重複対策が要る |
-| `request-cancellation` | タイムアウトを返すだけでは裏の仕事は止まらない |
+| `timeout-budget` | Shorter timeouts downstream, and pass the remaining budget along |
+| `retry-amplification` | Retries multiply across layers and amplify outages |
+| `load-shedding` | Under overload, reject some requests quickly instead of serving all slowly |
+| `cache-stampede` | An expiring hot key turns into a database stampede |
+| `availability-math` | Estimate required dependency availability with a product only under an independence model |
+| `blast-radius` | Shrink the blast radius by design, before the outage |
+| `metastable-failure` | Some outages do not end when the load drops (metastable failures) |
+| `idempotency-keys` | Retries of non-idempotent writes need deduplication such as idempotency keys |
+| `request-cancellation` | Returning a timeout does not stop the work behind it |
 
-## DB設計・トランザクション
+## Database design & transactions
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `composite-index-order` | 複合インデックスは、等しい値で絞る列を先に、範囲で絞る列を後に置く |
-| `foreign-key-index` | PostgreSQLは、外部キーの参照する側の列にインデックスを自動で作らない |
-| `lost-update` | 読んで計算して書き戻すと、同時の更新が消える（lost update） |
-| `write-skew` | スナップショット分離でも、別々の行への書き込みで不変条件が壊れる |
-| `deadlock-lock-order` | 行をロックする順番がそろっていないと、デッドロックになる |
-| `long-transactions` | 更新・ロックの後に外部APIを待つと、行ロックの保持が長くなる |
-| `ddl-lock-queue` | ALTER TABLEはロックを待っている間も、後から来たクエリを止める |
-| `database-constraints-races` | 「存在しなければINSERT」だけでは重複する。最後はDB制約で守る |
-| `conditional-state-transitions` | 状態を読んでから更新せず、「今もその状態なら」をUPDATEに入れる |
+| `composite-index-order` | In a composite index, put equality columns first and range columns last |
+| `foreign-key-index` | PostgreSQL does not index the referencing side of a foreign key for you |
+| `lost-update` | Read, compute, write back, and a concurrent update disappears (lost update) |
+| `write-skew` | Snapshot isolation still lets writes to different rows break invariants |
+| `deadlock-lock-order` | Lock rows in different orders and you get deadlocks |
+| `long-transactions` | Waiting for an external API after updating or locking rows prolongs row-lock holding |
+| `ddl-lock-queue` | An ALTER TABLE waiting for its lock blocks every query that arrives after it |
+| `database-constraints-races` | Checking before INSERT does not prevent duplicates; enforce a database constraint |
+| `conditional-state-transitions` | Put the expected state in UPDATE instead of checking and then writing |
 
-## データ整合性・ストレージ
+## Data consistency & storage
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `dual-write-outbox` | 別々のDB更新とメッセージ送信は、片方だけ成功しうる |
-| `replication-lag` | 非同期レプリカから読むと、自分の書き込みが見えないことがある |
-| `lsm-vs-btree` | LSMとB木は、書き込み・読み取り・増幅を実負荷で比べる |
-| `backup-restore` | レプリカだけでは誤削除に備えられない。バックアップは復元して確かめる |
-| `saga` | サービスをまたぐ処理は、取り消しの手順（サーガ）でつなぐ |
-| `throttled-backfill` | 大量の更新・削除は、小分けにして様子を見ながら流す |
+| `dual-write-outbox` | Separate DB updates and message sends can succeed independently |
+| `replication-lag` | Reading from async replicas can hide your own writes |
+| `lsm-vs-btree` | Compare LSM and B-tree write, read, and amplification costs under real workloads |
+| `backup-restore` | Replicas alone do not protect against accidental deletion; verify backups by restoring them |
+| `saga` | Chain work across services with compensating steps (a saga) |
+| `throttled-backfill` | Run big updates and deletes in small, throttled batches |
 
-## 分散システム・スケール
+## Distributed systems & scale
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `cap-pacelc` | CAPの選択はネットワーク分断のときに迫られる |
-| `quorum` | R＋W＞Nが保証するのは、同じレプリカ集合内での読み書き集合の交差 |
-| `consistent-hashing` | hash mod N は、ノードを1台足すだけでほぼ全キーが動く |
-| `hot-keys` | シャードを増やしても、1つのホットキーは分散しない |
-| `fencing-tokens` | 分散ロックは、期限切れに気づかないクライアントを止められない |
-| `clocks` | マシンの時計はずれる。順序や経過時間を壁時計で決めない |
-| `queue-backlog` | キューは過負荷を消さない。先送りした分は、あとで返す必要がある |
-| `exactly-once-boundary` | exactly-onceの保証範囲の外では、別途重複対策が要る |
+| `cap-pacelc` | CAP forces a choice only during a network partition |
+| `quorum` | R + W > N guarantees intersecting read/write sets within the same replica set |
+| `consistent-hashing` | hash mod N moves almost every key when you add one node |
+| `hot-keys` | Adding shards never spreads a single hot key |
+| `fencing-tokens` | A distributed lock cannot stop a client that missed its expiry |
+| `clocks` | Machine clocks drift; don't rely on wall time for order or duration |
+| `queue-backlog` | A queue does not remove overload; it defers it, and the debt comes due |
+| `exactly-once-boundary` | Effects outside an exactly-once guarantee need their own deduplication |
 
-## API・プロトコル
+## APIs & protocols
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `http-method-semantics` | HTTPメソッドの「安全」と「冪等」は、再試行と自動アクセスの前提になっている（RFC 9110） |
-| `cursor-pagination` | 一覧はOFFSETではなく、カーソルでページングする |
-| `http-caching-defaults` | Cache-Controlを書かないと、キャッシュは推測で期限を決める（RFC 9111） |
-| `json-number-precision` | JSONの大きな整数は、JavaScriptで黙って丸められる（RFC 8259） |
-| `uuidv7` | ランダムなUUIDv4を主キーにすると、インデックスへの書き込みが散らばる（RFC 9562） |
-| `tls-early-data` | TLS 1.3の0-RTTで送ったリクエストは、攻撃者に再送されうる（RFC 8446・RFC 8470） |
-| `http2-load-balancing` | HTTP/2とgRPCは接続を1本に束ねるので、L4のロードバランサーでは負荷が偏る（RFC 9113） |
-| `server-side-validation` | 画面の入力チェックを通っても、APIで検証し直す |
-| `api-error-contract` | エラー文言で分岐しない。HTTPステータスと安定した種類を返す |
-| `patch-field-presence` | 部分更新で「未指定」「null」「0・false・空文字」を混ぜない |
-| `request-work-limits` | APIの上限はリクエスト数だけでなく「1件の重さ」にも付ける |
+| `http-method-semantics` | "Safe" and "idempotent" HTTP methods are what retries and automated clients rely on (RFC 9110) |
+| `cursor-pagination` | Paginate lists with cursors, not OFFSET |
+| `http-caching-defaults` | Without Cache-Control, caches guess how long to keep a response (RFC 9111) |
+| `json-number-precision` | Large integers in JSON get silently rounded in JavaScript (RFC 8259) |
+| `uuidv7` | Random UUIDv4 primary keys scatter writes across the index (RFC 9562) |
+| `tls-early-data` | Requests sent in TLS 1.3 0-RTT can be replayed by an attacker (RFC 8446, RFC 8470) |
+| `http2-load-balancing` | HTTP/2 and gRPC bundle requests onto one connection, so L4 load balancers skew load (RFC 9113) |
+| `server-side-validation` | Validate again at the API boundary, even when the form validates |
+| `api-error-contract` | Return an HTTP status and a stable error type instead of branching on prose |
+| `patch-field-presence` | Distinguish omitted, null, zero, false, and empty strings in partial updates |
+| `request-work-limits` | Limit work per request as well as the number of requests |
 
-## 運用・クラウドネイティブ
+## Operations & cloud native
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `container-resources` | CPUの上限はスロットリング、メモリの上限超過はOOMの原因になる |
-| `autoscaling-lag` | オートスケールは、負荷が来てから数分遅れて効く |
-| `cold-start` | サーバーレスの最初の1回は、起動の時間を払う（コールドスタート） |
-| `graceful-shutdown` | デプロイのたびにエラーが出るなら、終了処理を疑う |
-| `health-check-depth` | ヘルスチェックは浅すぎても深すぎても、障害を大きくする |
-| `pod-disruption-budget` | ノードの更新は、PodDisruptionBudgetがないと同じサービスのPodをまとめて止めうる |
-| `spot-interruptions` | スポットのインスタンスは、取り上げられる前提で使う |
-| `slo-burn-rate` | SLOの消費速度で呼び出し、容量枯渇などの予防的警告も併用する |
-| `trace-propagation` | リクエストIDを全サービスに引き継ぎ、ログをつなげる |
-| `metric-cardinality` | メトリクスのラベルにユーザーIDを入れると、時系列が爆発する |
+| `container-resources` | CPU limits can throttle work; exceeding memory limits can lead to OOM termination |
+| `autoscaling-lag` | Autoscaling takes effect minutes after the load arrives |
+| `cold-start` | Serverless pays a startup cost on the first request (cold starts) |
+| `graceful-shutdown` | Errors on every deploy? Check your shutdown |
+| `health-check-depth` | Health checks that are too shallow or too deep both make outages worse |
+| `pod-disruption-budget` | Without a PodDisruptionBudget, a node upgrade can stop a service's Pods all at once |
+| `spot-interruptions` | Use spot instances assuming they will be taken away |
+| `slo-burn-rate` | Page on SLO burn rate and complement it with preventive capacity alerts |
+| `trace-propagation` | Carry one trace ID across services so logs connect |
+| `metric-cardinality` | Put user IDs in metric labels and the time series explode |
 
-## クラウドネイティブ開発
+## Cloud-native development
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `build-once-promote` | イメージは1回だけビルドし、同じものを本番まで進める |
-| `image-digest` | タグは書き換えられる。本番のイメージはダイジェストで指定する |
-| `container-pid1` | シェルがPID 1の起動方式では、SIGTERMがアプリへ届くか確認する |
-| `kubernetes-secrets` | KubernetesのSecretは、そのままでは暗号化されていない |
-| `gitops-drift` | 本番を手で直すと、次の同期で元に戻るか、ずれたまま残る |
-| `iac-replacement` | IaCの置き換えは別資源の作成。データの復元・保持指定を確認する |
-| `sidecar-startup` | サイドカーのプロキシより先にアプリが動き出すと、最初の通信が失敗する |
+| `build-once-promote` | Build the image once and promote that same image to production |
+| `image-digest` | Tags can be overwritten. Pin production images by digest |
+| `container-pid1` | When a shell is PID 1, check that SIGTERM reaches the application |
+| `kubernetes-secrets` | Kubernetes Secrets are not encrypted by default |
+| `gitops-drift` | Hand-fix production and the next sync undoes it, or the drift lingers |
+| `iac-replacement` | IaC replacement creates a different resource: check data restoration and retention settings |
+| `sidecar-startup` | If the app starts before its sidecar proxy, its first calls fail |
 
-## 開発・リリース
+## Development & release
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `trunk-based-development` | 長く生きるブランチほど、統合の痛みはまとめて後払いになる |
-| `small-changes` | 大きな変更は、レビューを長く待つうえに見落としも増える |
-| `contract-testing` | サービス間の互換性は契約テストで早く確認し、主要なE2Eも残す |
-| `flaky-tests` | 独立に0.1%で落ちるテスト500本なら、CIが赤になる確率は約4割 |
-| `progressive-rollout` | 本番への変更は少しずつ出し、すぐ戻せるようにする |
-| `feature-flag-debt` | 使い終わった機能フラグは、消すまで本番の分岐として残り続ける |
-| `expand-contract` | スキーマ変更は「追加→移行→削除」に分けて出す |
-| `decision-records` | 設計の決定は「採用しなかった案」と「戻し方」と一緒に残す |
-| `delivery-metrics` | 開発の速さと安定は引き換えではない。同じ指標の組で一緒に測る |
-| `database-integration-tests` | モックが通っても、SQLとトランザクションが正しいとは限らない |
-| `configuration-startup-validation` | 設定の誤りは最初の利用者ではなく、起動時に見つける |
+| `trunk-based-development` | The longer a branch lives, the more integration pain you pay all at once later |
+| `small-changes` | Big changes wait longer for review and get reviewed less carefully |
+| `contract-testing` | Check service compatibility early with contracts and retain key end-to-end tests |
+| `flaky-tests` | If 500 tests fail independently with probability 0.1%, about 40% of CI runs fail |
+| `progressive-rollout` | Roll out changes gradually, and keep rollback instant |
+| `feature-flag-debt` | A feature flag you are done with stays a live branch in production until you delete it |
+| `expand-contract` | Ship schema changes as expand, migrate, contract |
+| `decision-records` | Record design decisions with the rejected options and the way back |
+| `delivery-metrics` | Delivery speed and stability are not a trade-off; measure them together as a set |
+| `database-integration-tests` | Passing mocks do not prove SQL and transaction behavior |
+| `configuration-startup-validation` | Catch invalid configuration at startup before the first user does |
 
-## 認証・認可
+## Authentication & authorization
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `password-hashing` | パスワードのハッシュはわざと遅くする。その遅さは、ログインの容量計画に入れる |
-| `credential-stuffing` | 漏れたパスワードの使い回しは、IPごとの制限でもアカウントのロックでも止まりにくい |
-| `oauth-pkce` | SPAとモバイルアプリは秘密を守れない。認可コードはPKCEで、要求したアプリに結びつける |
-| `token-audience` | 署名が正しいトークンでも、自分宛てとは限らない（audとissを確かめる） |
-| `jwt-revocation` | JWTの自己完結した検証だけでは、発行後の失効は自動で伝わらない |
-| `refresh-token-rotation` | リフレッシュトークンは使うたびに替え、使用済みのものが届いたら一式を無効にする |
-| `object-authorization` | 推測しにくいIDは、認可の代わりにならない |
-| `permission-consistency` | 権限を外した直後でも、キャッシュした認可は古い許可を返す（new enemy problem） |
+| `password-hashing` | Make password hashing slow on purpose, and put that slowness in your login capacity plan |
+| `credential-stuffing` | Reused leaked passwords slip past both per-IP limits and account lockout |
+| `oauth-pkce` | SPAs and mobile apps cannot keep secrets: bind the authorization code to the requesting app with PKCE |
+| `token-audience` | A token with a valid signature is not necessarily meant for you: check aud and iss |
+| `jwt-revocation` | Self-contained JWT verification alone does not learn about later revocation |
+| `refresh-token-rotation` | Rotate refresh tokens on every use, and revoke the whole set when a used one comes back |
+| `object-authorization` | Hard-to-guess IDs are not a substitute for authorization |
+| `permission-consistency` | Right after you revoke access, a cached authorization check still says yes (the new enemy problem) |
 
-## セキュリティ
+## Security
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `ssrf` | サーバーにURLを取りに行かせる機能は、内側のネットワークへの入口になる |
-| `short-lived-credentials` | 認証情報の漏洩に備え、有効期間と権限の広さを小さくする |
-| `webhook-verification` | Webhookは、署名を確かめるまで誰が送ったかわからない |
-| `envelope-encryption` | データはデータキーで暗号化し、KMSにはデータキーを包ませるだけにする |
-| `safe-structured-logs` | 障害調査のログに、トークンやリクエスト全文を残さない |
-| `threat-modeling-boundaries` | 作る前に、守るデータと信頼の境界を図にする（脅威モデリング） |
-| `vulnerability-remediation-loop` | 脆弱性は、検出件数ではなく本番での修正完了まで追う |
-| `privileged-access-lifecycle` | 管理者の権限は、付けるときから外すときまで設計する |
-| `security-detection-coverage` | 監査ログは「取っている」だけでなく、必要な操作を検知できるか試す |
-| `incident-response-rehearsal` | インシデントの連絡先と判断権限は、起こる前に試しておく |
-| `leaked-secret-response` | 秘密情報が漏れたら、ファイルの削除より先に利用を止める |
-| `incident-containment-evidence` | 侵害の疑いでは、封じ込めと証拠保全を並行して進める |
-| `incident-scope-communication` | 影響調査では、確認できた事実と不明な範囲を分けて伝える |
-| `secure-incident-recovery` | 復旧は「動いた」で終えず、再侵入の経路を閉じて確かめる |
-| `security-postmortem-actions` | 再発防止は「注意する」ではなく、担当と確認条件を持つ改善にする |
+| `ssrf` | A feature that makes your server fetch URLs is a door into your internal network |
+| `short-lived-credentials` | Limit credential lifetime and permissions to reduce exposure after leakage |
+| `webhook-verification` | Until you check the signature, you do not know who sent a Webhook |
+| `envelope-encryption` | Encrypt data with a data key, and have the KMS only wrap that key |
+| `safe-structured-logs` | Keep tokens and complete request bodies out of diagnostic logs |
+| `threat-modeling-boundaries` | Map protected data and trust boundaries before building (threat modeling) |
+| `vulnerability-remediation-loop` | Track vulnerabilities through production remediation, beyond detection |
+| `privileged-access-lifecycle` | Design administrator access from granting through removal |
+| `security-detection-coverage` | Test that audit logging detects the operations you need to see |
+| `incident-response-rehearsal` | Rehearse incident contacts and decision authority before an incident |
+| `leaked-secret-response` | Stop use of an exposed secret before relying on file cleanup |
+| `incident-containment-evidence` | Contain a suspected compromise while preserving evidence |
+| `incident-scope-communication` | Communicate verified impact separately from uncertain scope |
+| `secure-incident-recovery` | Verify safe recovery by closing re-entry paths before restoring service |
+| `security-postmortem-actions` | Turn incident lessons into owned improvements with verification criteria |
 
-## AI・LLMシステム
+## AI & LLM systems
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `llm-output-latency` | LLMのデコードが支配的なら、出力を短くすると応答完了が速くなる |
-| `prompt-caching` | プレフィックス型のプロンプトキャッシュは、固定部分を先頭へ置く |
-| `kv-cache-concurrency` | KVキャッシュの収容上限と、遅延目標を満たすLLM同時処理数は別 |
-| `rag-retrieval-first` | RAGの間違いは、まず検索で起きていないかを測る |
-| `filtered-vector-search` | ベクトル検索に絞り込みを足すと、結果が足りなくなることがある |
-| `llm-evals` | プロンプトやモデルの変更は、評価セットで回帰を確かめてから出す |
-| `prompt-injection` | LLMに読ませる外部の文章は、命令ではなくデータとして扱う（プロンプトインジェクション） |
-| `agent-step-reliability` | 全手順の成功率は、独立性や条件付き成功率を明示して見積もる |
-| `llm-fallback` | LLMのAPIのレート制限と過負荷には、待ち方と切り替え先を先に決めておく |
+| `llm-output-latency` | When LLM decoding dominates, shorter output reduces completion latency |
+| `prompt-caching` | For prefix-based prompt caching, place stable content first |
+| `kv-cache-concurrency` | KV-cache capacity and concurrency meeting latency goals are different limits |
+| `rag-retrieval-first` | When RAG answers wrong, first check whether retrieval missed |
+| `filtered-vector-search` | Adding a filter to vector search can leave you short of results |
+| `llm-evals` | Check prompt and model changes for regressions on an evaluation set before shipping |
+| `prompt-injection` | Treat outside text an LLM reads as data, not instructions (prompt injection) |
+| `agent-step-reliability` | Estimate end-to-end step success with explicit independence or conditional probabilities |
+| `llm-fallback` | Decide how to wait and where to fall back before an LLM API rate-limits or overloads |
 
-## 面接で聞かれるケース
+## Interview follow-ups
 
-| ID | 話題 |
+| ID | Topic |
 | --- | --- |
-| `unique-id` | 「IDはどう採番しますか？」 |
-| `cache-down` | 「キャッシュが全部落ちたらどうなりますか？」 |
-| `region-failure` | 「リージョンが丸ごと落ちたら？」 |
-| `single-point-of-failure` | 「この設計の単一障害点はどこですか？」 |
-| `realtime-delivery` | 「新着メッセージをどうリアルタイムに届けますか？」 |
-| `leaderboard` | 「リアルタイムのランキングをどう作りますか？」 |
-| `nearby-search` | 「近くのお店をどう検索しますか？」 |
-| `data-store-choice` | 「なぜそのデータベースを選んだのですか？」 |
-| `ten-x-scale` | 「トラフィックが10倍になったら、どこから壊れますか？」 |
-| `monitoring-plan` | 「このシステムをどう監視しますか？」 |
-| `feed-fanout` | 「タイムラインは、投稿時と読み込み時のどちらで作りますか？」 |
+| `unique-id` | "How would you generate IDs?" |
+| `cache-down` | "What happens if the whole cache goes down?" |
+| `region-failure` | "What if an entire region goes down?" |
+| `single-point-of-failure` | "Where is the single point of failure?" |
+| `realtime-delivery` | "How do you deliver new messages in real time?" |
+| `leaderboard` | "How would you build a real-time leaderboard?" |
+| `nearby-search` | "How would you find nearby places?" |
+| `data-store-choice` | "Why did you choose that database?" |
+| `ten-x-scale` | "If traffic grew 10x, what breaks first?" |
+| `monitoring-plan` | "How would you monitor this system?" |
+| `feed-fanout` | "Do you build timelines when a post is written, or when it is read?" |

@@ -1,4 +1,4 @@
 interface:
-  display_name: "システムデザイン診断"
-  short_description: "既存プロダクトの設計リスクを診断し、根拠と優先順位・対応案を示して意思決定を支援する"
-  default_prompt: "$system-design-diagnosis を使ってこのプロダクトを診断し、改善の優先順位と判断根拠、対応案・見送り時のリスクを示して、私が次の対応を選べるようにしてください。"
+  display_name: "System Design Diagnosis"
+  short_description: "Review design risks and prioritize practical improvements"
+  default_prompt: "Use $system-design-diagnosis to review this product, prioritize findings with evidence, and compare options and remaining risks so I can choose what to do next."
