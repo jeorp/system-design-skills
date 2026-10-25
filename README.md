@@ -1,6 +1,6 @@
 # System Design Skills
 
-Agent skills for improving in-house development, delivering customer solutions, evolving architecture, reviewing changes, and planning reliable operations.
+Agent skills for improving in-house development, delivering customer solutions, evolving architecture, and designing reliable AI, data, security, and operations workflows.
 
 ## Skills
 
@@ -16,12 +16,16 @@ Agent skills for improving in-house development, delivering customer solutions, 
 | [In-house Development Improvement](skills/inhouse-development-improvement/SKILL.md) | When delivery, ownership, setup, or handover prevents independent development and operation | Evidence-backed bottlenecks, prioritized improvements, and proof of team capability |
 | [Architecture Evolution](skills/architecture-evolution/SKILL.md) | When an existing system needs multiple coordinated architectural changes | Target boundaries, useful intermediate states, a staged roadmap, validation gates, and recovery limits |
 | [FDE Solution Delivery](skills/fde-solution-delivery/SKILL.md) | When a customer workflow needs discovery, integration, a pilot, or adoption support | Business outcomes, data/access readiness, acceptance cases, pilot criteria, and operational handover conditions |
+| [AI System Design](skills/ai-system-design/SKILL.md) | When designing an LLM, RAG, or agent feature | Control flow, retrieval and action boundaries, resource budgets, evaluation, and release gates |
+| [Data Pipeline Design](skills/data-pipeline-design/SKILL.md) | When designing ETL, ELT, streaming, or CDC data movement | Data contracts, capture and publication semantics, replay/backfill strategy, and reconciliation |
+| [Threat Modeling](skills/threat-modeling/SKILL.md) | When analyzing threats to a feature or system | Assets and trust boundaries, reachable threat scenarios, prioritized controls, and verification criteria |
+| [Observability Design](skills/observability-design/SKILL.md) | When designing how failures are detected and diagnosed | User-centered SLIs/SLOs, signal placement, actionable alerts, response evidence, and acceptance checks |
 
-All ten use 212 system-design Tips to support decisions and communicate in your language. Planning, review, diagnosis, or retrospective analysis alone does not change your product or production settings. Failure testing can include focused local tests; production experiments require their own authorized scope.
+All skills use 212 system-design Tips to support decisions and communicate in your language. Planning, review, diagnosis, threat analysis, or retrospective analysis alone does not change your product or production settings. Failure testing can include focused local tests; production experiments require their own authorized scope.
 
 ## Choosing a skill
 
-Choose by the question you need answered. In-house Development Improvement, Architecture Evolution, and FDE Solution Delivery coordinate broader improvement and customer delivery work. The other seven skills develop specific design, assessment, verification, and operational tasks in more detail. Each skill works independently; use them together when the task crosses those boundaries.
+Choose by the question you need answered. In-house Development Improvement, Architecture Evolution, and FDE Solution Delivery coordinate broader improvement and customer delivery work. The remaining skills develop specific design, assessment, verification, and operational tasks in more detail. Each skill works independently; use them together when the task crosses those boundaries.
 
 ```mermaid
 flowchart LR
@@ -44,6 +48,12 @@ flowchart LR
     Task -->|"Estimate load and headroom"| Capacity["Capacity Planning"]
     Task -->|"Plan a schema or data migration"| Migration["Safe Migration Planning"]
     Task -->|"Learn from an incident"| Incident["Incident Learning"]
+
+    Start --> Domain["A specialized design question"]
+    Domain -->|"LLM, RAG, or agent architecture"| AI["AI System Design"]
+    Domain -->|"ETL, streaming, or CDC"| Data["Data Pipeline Design"]
+    Domain -->|"Assets, boundaries, and abuse paths"| Threat["Threat Modeling"]
+    Domain -->|"Detection, diagnosis, and response"| Observe["Observability Design"]
 ```
 
 ### Broader workflows and their boundaries
@@ -58,7 +68,7 @@ FDE (Forward Deployed Engineering) Solution Delivery focuses on customer workflo
 
 System Design Diagnosis identifies and prioritizes weaknesses in the current system. System Design Planning designs a particular feature or architectural change, including its delivery sequence. Architecture Evolution connects multiple changes into a broader roadmap. Safe Migration Planning develops the compatibility, monitoring, abort, and recovery details for an individual schema or data migration within that roadmap.
 
-For an AI-assisted customer support project, FDE Solution Delivery establishes the current workflow, desired business outcomes, usable data, decision owners, and acceptance cases; compares rules, search, and AI where appropriate; and defines pilot and handover criteria. System Design Planning develops the chosen solution's architecture and integrations.
+For an AI-assisted customer support project, FDE Solution Delivery establishes the current workflow, desired business outcomes, usable data, decision owners, and acceptance cases; compares rules, search, and AI where appropriate; and defines pilot and handover criteria. AI System Design develops AI control flow, retrieval, tool boundaries, and quality gates; System Design Planning can develop the surrounding product architecture and integrations.
 
 For example, splitting a large existing service could combine the skills as follows. These are handoffs between tasks, not automatic skill invocations:
 
@@ -66,6 +76,12 @@ For example, splitting a large existing service could combine the skills as foll
 2. **System Design Planning:** design the first extraction, including data flows and failure handling.
 3. **Safe Migration Planning:** plan any schema or data migration required by that extraction.
 4. **Architecture Change Review and Failure Scenario Testing:** review the implementation and verify relevant failure behavior.
+
+### Specialized design and its boundaries
+
+AI System Design makes AI-specific architectural decisions and defines task evaluations; it is not a general prompt-polishing workflow. Data Pipeline Design handles ongoing data movement, publication, replay, and reconciliation; Safe Migration Planning handles a bounded schema or data cutover. Threat Modeling develops asset and trust-boundary abuse scenarios; Architecture Change Review attributes system-level regressions to a concrete diff. Observability Design specifies indicators, instrumentation, alert actions, and diagnostic evidence; Incident Learning uses available evidence to analyze a past incident.
+
+These skills can design a new path or improve an existing one within their domain. They do not require a broader assessment or another skill to be installed. Use only the relevant parts of their supporting guides.
 
 ## Usage
 
@@ -88,6 +104,10 @@ $incident-learning Use these logs and the incident timeline to explain the contr
 $inhouse-development-improvement Identify what prevents our team from independently changing and operating this service, and prioritize improvements with completion evidence.
 $architecture-evolution Plan how to split this existing service through useful intermediate states while development continues, including data ownership and recovery limits.
 $fde-solution-delivery Turn this customer workflow problem into a solution and adoption plan with data/access readiness, business acceptance cases, and pilot and handover criteria.
+$ai-system-design Design this support assistant's retrieval, permissions, tool actions, quality evaluations, and release gates; compare a fixed workflow with an agent where appropriate.
+$data-pipeline-design Design this incremental analytics pipeline, including capture, deletes, late data, replay, concurrent backfills, and business-level reconciliation.
+$threat-modeling Model threats to this multi-tenant export feature, including entry points, trust boundaries, existing controls, and verification of the most important mitigations.
+$observability-design Design indicators, instrumentation, and actionable alerts for this asynchronous workflow, measuring business completion rather than only enqueue success.
 ```
 
 ## Included Tips
@@ -101,7 +121,7 @@ python3 skills/system-design-planning/scripts/tips.py search webhook
 python3 skills/system-design-planning/scripts/tips.py show webhook-verification idempotency-keys
 ```
 
-Maintain the canonical bundle in `system-design-diagnosis`, then synchronize the standalone copies:
+Maintain the canonical bundle in `system-design-diagnosis`, then synchronize the standalone copies. The sync script discovers every other `skills/*/SKILL.md` directory automatically, so new skills receive the bundle without a separate target list:
 
 ```sh
 python3 skills/system-design-diagnosis/scripts/tips.py refresh --source /path/to/catalog.en.json
@@ -110,6 +130,12 @@ python3 scripts/sync_tips.py --check
 ```
 
 Review the generated diff after updates. Tips are guidance; verify relevant product versions and primary sources before applying them.
+
+To verify bundle synchronization behavior, including discovery, read-only checks, and missing-source handling:
+
+```sh
+python3 -m unittest discover -s tests
+```
 
 ## License
 

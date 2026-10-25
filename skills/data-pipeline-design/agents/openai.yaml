@@ -1,0 +1,4 @@
+interface:
+  display_name: "Data Pipeline Design"
+  short_description: "Design reliable data capture, publication, and replay"
+  default_prompt: "Use $data-pipeline-design to design this data pipeline with explicit data contracts, incremental capture, replay and backfill behavior, and business-level reconciliation."

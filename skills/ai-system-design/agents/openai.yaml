@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI System Design"
+  short_description: "Design AI workflows, retrieval, tools, and quality gates"
+  default_prompt: "Use $ai-system-design to design this AI feature with control flow, retrieval and action boundaries, resource budgets, task evaluations, and release gates."

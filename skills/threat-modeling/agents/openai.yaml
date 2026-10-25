@@ -1,0 +1,4 @@
+interface:
+  display_name: "Threat Modeling"
+  short_description: "Map trust boundaries, threats, controls, and verification"
+  default_prompt: "Use $threat-modeling to model threats to this feature using its assets, actors, trust boundaries, reachable abuse paths, existing controls, and verification criteria."

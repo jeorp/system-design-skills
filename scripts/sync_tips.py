@@ -8,20 +8,6 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "skills" / "system-design-diagnosis"
-TARGETS = tuple(
-    ROOT / "skills" / name
-    for name in (
-        "system-design-planning",
-        "failure-scenario-testing",
-        "architecture-change-review",
-        "safe-migration-planning",
-        "capacity-planning",
-        "incident-learning",
-        "inhouse-development-improvement",
-        "architecture-evolution",
-        "fde-solution-delivery",
-    )
-)
 FILES = ("scripts/tips.py", "references/tips.json", "references/tip-index.md")
 
 
@@ -33,7 +19,10 @@ def main():
         # Read all source files before changing any destination.
         bundle = {name: (SOURCE / name).read_bytes() for name in FILES}
         stale = []
-        for target in TARGETS:
+        targets = sorted(path.parent for path in (ROOT / "skills").glob("*/SKILL.md"))
+        for target in targets:
+            if target == SOURCE:
+                continue
             for name, content in bundle.items():
                 destination = target / name
                 if destination.exists() and destination.read_bytes() == content:
